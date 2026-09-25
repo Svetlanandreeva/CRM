@@ -1,0 +1,6 @@
+{
+  "name": "Satori CRM — Управление клиентами, производством и сделками",
+  "description": "Современная CRM-система для управления клиентами, мультиканальным чатом, воронкой продаж, производством, счетами и аналитикой.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
