@@ -22,6 +22,10 @@ import { ContractorsView } from './components/contractors/ContractorsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { SettingsView } from './components/settings/SettingsView';
+import { InboxView } from './components/inbox/InboxView';
+import { CallListView } from './components/calls/CallListView';
+import { AiManagerView } from './components/assistant/AiManagerView';
+import { IntegrationsView } from './components/integrations/IntegrationsView';
 
 // Modals
 import { CreateClientModal } from './components/modals/CreateClientModal';
@@ -34,27 +38,31 @@ import { NotificationsDrawer } from './components/modals/NotificationsDrawer';
 
 const MainContent: React.FC = () => {
   const { currentTab } = useCrm();
+  const tab = String(currentTab);
 
   return (
     <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
       <Header />
       <div className="flex-1 flex min-h-0 overflow-hidden relative">
-        {currentTab === 'dashboard' && <DashboardView />}
-        {currentTab === 'client_cockpit' && <ClientCockpitView />}
-        {currentTab === 'clients' && <ClientsListView />}
-        {currentTab === 'deals' && <DealsKanbanView />}
-        {currentTab === 'production' && <ProductionOrdersView />}
-        {currentTab === 'documents' && <DocumentsView />}
-        {currentTab === 'tasks' && <TasksView />}
-        {currentTab === 'finance' && <FinanceView />}
-        {currentTab === 'catalog' && <CatalogView />}
-        {currentTab === 'contractors' && <ContractorsView />}
-        {currentTab === 'analytics' && <AnalyticsView />}
-        {currentTab === 'calendar' && <CalendarView />}
-        {currentTab === 'settings' && <SettingsView />}
+        {tab === 'dashboard' && <DashboardView />}
+        {tab === 'client_cockpit' && <ClientCockpitView />}
+        {tab === 'clients' && <ClientsListView />}
+        {tab === 'deals' && <DealsKanbanView />}
+        {tab === 'inbox' && <InboxView />}
+        {tab === 'call_list' && <CallListView />}
+        {tab === 'ai_manager' && <AiManagerView />}
+        {tab === 'production' && <ProductionOrdersView />}
+        {tab === 'documents' && <DocumentsView />}
+        {tab === 'tasks' && <TasksView />}
+        {tab === 'finance' && <FinanceView />}
+        {tab === 'catalog' && <CatalogView />}
+        {tab === 'contractors' && <ContractorsView />}
+        {tab === 'analytics' && <AnalyticsView />}
+        {tab === 'calendar' && <CalendarView />}
+        {tab === 'integrations' && <IntegrationsView />}
+        {tab === 'settings' && <SettingsView />}
       </div>
 
-      {/* Global Modals */}
       <CreateClientModal />
       <CreateDealModal />
       <CreateTaskModal />
@@ -71,8 +79,8 @@ const MainApp: React.FC = () => {
 
   return (
     <div className={`flex h-screen w-screen overflow-hidden font-sans transition-colors duration-150 ${
-      theme === 'dark' 
-        ? 'bg-[#121212] text-[#E0E0E0] dark' 
+      theme === 'dark'
+        ? 'bg-[#121212] text-[#E0E0E0] dark'
         : 'bg-[#F8F7F4] text-[#1A1A1A]'
     }`}>
       <Sidebar />
