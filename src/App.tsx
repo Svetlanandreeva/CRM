@@ -20,6 +20,7 @@ import { FigmaInboxView } from './components/figma/FigmaInboxView';
 import { FigmaEvaView } from './components/figma/FigmaEvaView';
 import { FigmaCalendarView } from './components/figma/FigmaCalendarView';
 import { MobileCrmView } from './components/figma/FigmaMobileViews';
+import { MobileLiveEva, MobileLiveInbox } from './components/figma/MobileLiveChannels';
 
 import { SettingsView } from './components/settings/SettingsView';
 import { ClientsListView } from './components/clients/ClientsListView';
@@ -93,6 +94,8 @@ const useIsMobile = () => {
 
 const MobileApp: React.FC = () => {
   const { currentTab, setCurrentTab } = useCrm();
+  if (currentTab === 'inbox') return <><MobileLiveInbox /><GlobalOverlays /></>;
+  if (currentTab === 'ai_manager') return <><MobileLiveEva /><GlobalOverlays /></>;
   if (currentTab === 'integrations') return <div className="min-h-[100dvh] w-screen overflow-x-auto bg-[#f7f5f1] font-sans text-[#181a20]">
     <div className="sticky top-0 z-[80] flex h-14 items-center gap-3 border-b border-[#e8e4de] bg-[#f7f5f1]/95 px-4 backdrop-blur">
       <button onClick={()=>setCurrentTab('dashboard')} className="grid h-9 w-9 place-items-center rounded-full bg-white"><ArrowLeft size={17}/></button>
