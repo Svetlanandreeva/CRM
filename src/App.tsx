@@ -6,25 +6,28 @@
 import React from 'react';
 import { CrmProvider, useCrm } from './context/CrmContext';
 import { Sidebar } from './components/common/Sidebar';
-import { Header } from './components/common/Header';
 
-// Views
-import { DashboardView } from './components/dashboard/DashboardView';
-import { ClientCockpitView } from './components/clients/ClientCockpitView';
+import {
+  FigmaDashboardView,
+  FigmaDealsView,
+  FigmaDocumentsView,
+  FigmaEconomicsView,
+  FigmaFunnelView,
+  FigmaProjectCalcView,
+} from './components/figma/FigmaViews';
+
+// Existing live / operational screens kept behind the redesigned shell.
+import { InboxView } from './components/inbox/InboxView';
+import { AiManagerView } from './components/assistant/AiManagerView';
+import { CalendarView } from './components/calendar/CalendarView';
+import { SettingsView } from './components/settings/SettingsView';
 import { ClientsListView } from './components/clients/ClientsListView';
-import { DealsKanbanView } from './components/deals/DealsKanbanView';
+import { ClientCockpitView } from './components/clients/ClientCockpitView';
 import { ProductionOrdersView } from './components/production/ProductionOrdersView';
-import { DocumentsView } from './components/documents/DocumentsView';
 import { TasksView } from './components/tasks/TasksView';
-import { FinanceView } from './components/finance/FinanceView';
 import { CatalogView } from './components/catalog/CatalogView';
 import { ContractorsView } from './components/contractors/ContractorsView';
 import { AnalyticsView } from './components/analytics/AnalyticsView';
-import { CalendarView } from './components/calendar/CalendarView';
-import { SettingsView } from './components/settings/SettingsView';
-import { InboxView } from './components/inbox/InboxView';
-import { CallListView } from './components/calls/CallListView';
-import { AiManagerView } from './components/assistant/AiManagerView';
 import { IntegrationsView } from './components/integrations/IntegrationsView';
 
 // Modals
@@ -41,26 +44,28 @@ const MainContent: React.FC = () => {
   const tab = String(currentTab);
 
   return (
-    <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-      <Header />
-      <div className="flex-1 flex min-h-0 overflow-hidden relative">
-        {tab === 'dashboard' && <DashboardView />}
-        {tab === 'client_cockpit' && <ClientCockpitView />}
-        {tab === 'clients' && <ClientsListView />}
-        {tab === 'deals' && <DealsKanbanView />}
+    <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f5f2]">
+      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+        {tab === 'dashboard' && <FigmaDashboardView />}
+        {tab === 'deals' && <FigmaDealsView />}
+        {tab === 'pipeline' && <FigmaFunnelView />}
         {tab === 'inbox' && <InboxView />}
-        {tab === 'call_list' && <CallListView />}
+        {tab === 'finance' && <FigmaEconomicsView />}
+        {tab === 'project_calc' && <FigmaProjectCalcView />}
+        {tab === 'documents' && <FigmaDocumentsView />}
         {tab === 'ai_manager' && <AiManagerView />}
+        {tab === 'calendar' && <CalendarView />}
+        {tab === 'settings' && <SettingsView />}
+
+        {/* Operational views remain available if opened from links/actions. */}
+        {tab === 'clients' && <ClientsListView />}
+        {tab === 'client_cockpit' && <ClientCockpitView />}
         {tab === 'production' && <ProductionOrdersView />}
-        {tab === 'documents' && <DocumentsView />}
         {tab === 'tasks' && <TasksView />}
-        {tab === 'finance' && <FinanceView />}
         {tab === 'catalog' && <CatalogView />}
         {tab === 'contractors' && <ContractorsView />}
         {tab === 'analytics' && <AnalyticsView />}
-        {tab === 'calendar' && <CalendarView />}
         {tab === 'integrations' && <IntegrationsView />}
-        {tab === 'settings' && <SettingsView />}
       </div>
 
       <CreateClientModal />
@@ -74,20 +79,12 @@ const MainContent: React.FC = () => {
   );
 };
 
-const MainApp: React.FC = () => {
-  const { theme } = useCrm();
-
-  return (
-    <div className={`flex h-screen w-screen overflow-hidden font-sans transition-colors duration-150 ${
-      theme === 'dark'
-        ? 'bg-[#121212] text-[#E0E0E0] dark'
-        : 'bg-[#F8F7F4] text-[#1A1A1A]'
-    }`}>
-      <Sidebar />
-      <MainContent />
-    </div>
-  );
-};
+const MainApp: React.FC = () => (
+  <div className="flex h-screen w-screen overflow-hidden bg-[#f7f5f2] font-sans text-[#1f1d1c]">
+    <Sidebar />
+    <MainContent />
+  </div>
+);
 
 export default function App() {
   return (
