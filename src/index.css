@@ -144,9 +144,9 @@ div[class~="top-[806px]"] > section {
   overflow: hidden;
 }
 
-/* Dashboard economy card — real values must stay readable and never wrap into the donut. */
+/* Dashboard economy card: compact 2-column composition matching the Figma card. */
 div[class~="top-[806px]"][class~="h-[160px]"] {
-  height: 174px !important;
+  height: 160px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) {
@@ -156,52 +156,63 @@ div[class~="top-[806px]"] > section:nth-child(2) {
 
 div[class~="top-[806px]"] > section:nth-child(2) > h2 {
   margin: 0;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
+/* Donut */
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"][class~="top-[50px]"] {
-  left: 28px !important;
-  top: 43px !important;
-  width: 104px !important;
-  height: 104px !important;
+  left: 24px !important;
+  top: 45px !important;
+  width: 96px !important;
+  height: 96px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] > div[class~="h-[72px]"] {
-  width: 76px !important;
-  height: 76px !important;
+  width: 68px !important;
+  height: 68px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] b {
   display: block;
-  max-width: 72px;
+  max-width: 64px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px !important;
+  font-size: 12px !important;
   line-height: 1.05;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.02em;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] div[class~="text-[9px]"] {
   margin-top: 3px;
-  font-size: 9px;
+  font-size: 8px !important;
+  line-height: 1;
   white-space: nowrap;
 }
 
+/* Legend: dot | label | amount. No wrapping, no row splitting. */
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"][class~="top-[52px]"] {
-  left: 154px !important;
+  left: 142px !important;
   right: 18px !important;
   top: 48px !important;
-  display: grid;
-  gap: 10px;
+  display: grid !important;
+  gap: 8px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div {
   display: grid !important;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
+  grid-template-columns: 10px minmax(0, 1fr) max-content !important;
+  align-items: center !important;
+  column-gap: 9px !important;
   min-width: 0;
+  min-height: 22px;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > i {
+  margin: 0 !important;
+  width: 9px !important;
+  height: 9px !important;
+  flex: none;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > span {
@@ -209,17 +220,18 @@ div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > 
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 10px;
+  color: #514c48;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > b {
-  min-width: 88px;
+  min-width: 0;
+  margin: 0;
   text-align: right;
   white-space: nowrap;
-  font-size: 11px;
-}
-
-div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] i {
-  margin-right: 9px !important;
+  font-size: 10px;
+  font-weight: 600;
+  color: #1f1d1c;
 }
 
 @media (max-width: 1280px) {
@@ -233,18 +245,22 @@ div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] i 
   }
 
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"][class~="top-[50px]"] {
-    left: 22px !important;
-    width: 96px !important;
-    height: 96px !important;
+    left: 20px !important;
+    width: 90px !important;
+    height: 90px !important;
   }
 
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"][class~="top-[52px]"] {
-    left: 132px !important;
-    right: 14px !important;
+    left: 124px !important;
+    right: 12px !important;
   }
 
+  div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div {
+    column-gap: 7px !important;
+  }
+
+  div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > span,
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > b {
-    min-width: 76px;
-    font-size: 10px;
+    font-size: 9px;
   }
 }
