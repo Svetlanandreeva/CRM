@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { CrmProvider, useCrm } from './context/CrmContext';
 import { Sidebar } from './components/common/Sidebar';
 
@@ -18,6 +18,7 @@ import {
 import { FigmaInboxView } from './components/figma/FigmaInboxView';
 import { FigmaEvaView } from './components/figma/FigmaEvaView';
 import { FigmaCalendarView } from './components/figma/FigmaCalendarView';
+import { MobileCrmView } from './components/figma/FigmaMobileViews';
 
 // Existing operational screens kept behind the redesigned shell.
 import { SettingsView } from './components/settings/SettingsView';
@@ -38,6 +39,16 @@ import { CreateInvoiceModal } from './components/modals/CreateInvoiceModal';
 import { CreateRecurringScheduleModal } from './components/documents/CreateRecurringScheduleModal';
 import { CommandPalette } from './components/modals/CommandPalette';
 import { NotificationsDrawer } from './components/modals/NotificationsDrawer';
+
+const GlobalOverlays: React.FC = () => <>
+  <CreateClientModal />
+  <CreateDealModal />
+  <CreateTaskModal />
+  <CreateInvoiceModal />
+  <CreateRecurringScheduleModal />
+  <CommandPalette />
+  <NotificationsDrawer />
+</>;
 
 const MainContent: React.FC = () => {
   const { currentTab } = useCrm();
@@ -67,24 +78,28 @@ const MainContent: React.FC = () => {
         {tab === 'analytics' && <AnalyticsView />}
         {tab === 'integrations' && <IntegrationsView />}
       </div>
-
-      <CreateClientModal />
-      <CreateDealModal />
-      <CreateTaskModal />
-      <CreateInvoiceModal />
-      <CreateRecurringScheduleModal />
-      <CommandPalette />
-      <NotificationsDrawer />
+      <GlobalOverlays />
     </main>
   );
 };
 
-const MainApp: React.FC = () => (
-  <div className="flex h-screen w-screen overflow-hidden bg-[#f7f5f2] font-sans text-[#1f1d1c]">
-    <Sidebar />
-    <MainContent />
-  </div>
-);
+const useIsMobile = () => {
+  const [mobile, setMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 767px)');
+    const update = () => setMobile(query.matches);
+    update();
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  return mobile;
+};
+
+const MainApp: React.FC = () => {
+  const mobile = useIsMobile();
+  if (mobile) return <div className="min-h-[100dvh] w-screen overflow-x-hidden bg-[#f7f5f1] font-sans text-[#181a20]"><MobileCrmView /><GlobalOverlays /></div>;
+  return <div className="flex h-screen w-screen overflow-hidden bg-[#f7f5f2] font-sans text-[#1f1d1c]"><Sidebar /><MainContent /></div>;
+};
 
 export default function App() {
   return (
