@@ -15,9 +15,9 @@ import {
   FigmaFunnelView,
   FigmaProjectCalcView,
 } from './components/figma/FigmaViews';
+import { FigmaInboxView } from './components/figma/FigmaInboxView';
 
-// Existing live / operational screens kept behind the redesigned shell.
-import { InboxView } from './components/inbox/InboxView';
+// Existing operational screens kept behind the redesigned shell.
 import { AiManagerView } from './components/assistant/AiManagerView';
 import { CalendarView } from './components/calendar/CalendarView';
 import { SettingsView } from './components/settings/SettingsView';
@@ -49,7 +49,7 @@ const MainContent: React.FC = () => {
         {tab === 'dashboard' && <FigmaDashboardView />}
         {tab === 'deals' && <FigmaDealsView />}
         {tab === 'pipeline' && <FigmaFunnelView />}
-        {tab === 'inbox' && <InboxView />}
+        {tab === 'inbox' && <FigmaInboxView />}
         {tab === 'finance' && <FigmaEconomicsView />}
         {tab === 'project_calc' && <FigmaProjectCalcView />}
         {tab === 'documents' && <FigmaDocumentsView />}
