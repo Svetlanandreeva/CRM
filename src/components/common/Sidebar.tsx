@@ -1,12 +1,11 @@
 import React from 'react';
 import {
-  CalendarDays, CircleDot, FileText, Home, MessageCircle, Search, Settings,
+  CalendarDays, CircleDot, FileText, Home, MessageCircle, Plug, Search, Settings,
   Sigma, Sparkles, TrendingUp, Triangle,
 } from 'lucide-react';
 import { useCrm, type NavigationTab } from '../../context/CrmContext';
 
-type FigmaTab = NavigationTab | 'pipeline' | 'inbox' | 'ai_manager' | 'project_calc';
-type Item = { id: FigmaTab; label: string; icon: React.FC<{ className?: string; size?: number; strokeWidth?: number }> };
+type Item = { id: NavigationTab; label: string; icon: React.FC<{ className?: string; size?: number; strokeWidth?: number }> };
 
 const nav: Item[] = [
   { id: 'dashboard', label: 'Главная', icon: Home },
@@ -18,6 +17,7 @@ const nav: Item[] = [
   { id: 'documents', label: 'КП', icon: FileText },
   { id: 'ai_manager', label: 'Чат с Евой', icon: Sparkles },
   { id: 'calendar', label: 'Календарь проектов', icon: CalendarDays },
+  { id: 'integrations', label: 'Интеграции', icon: Plug },
   { id: 'settings', label: 'Настройки', icon: Settings },
 ];
 
@@ -32,7 +32,7 @@ export const Sidebar: React.FC = () => {
         <Search size={14} strokeWidth={1.7}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Поиск..." className="min-w-0 flex-1 bg-transparent text-[12px] outline-none placeholder:text-[#9f9994]"/>
       </label>
       <nav className="absolute left-[18px] right-[18px] top-[138px]">
-        {shown.map((item,index)=>{const active=String(currentTab)===item.id;const Icon=item.icon;return <button key={item.id} onClick={()=>setCurrentTab(item.id as NavigationTab)} className={`mb-[8px] flex h-[44px] w-[234px] items-center rounded-[12px] px-[18px] text-left ${active?'bg-[#686461] text-white':'text-[#e4dfda] hover:bg-[#393739]'}`}>
+        {shown.map((item)=>{const active=String(currentTab)===item.id;const Icon=item.icon;return <button key={item.id} onClick={()=>setCurrentTab(item.id)} className={`mb-[8px] flex h-[44px] w-[234px] items-center rounded-[12px] px-[18px] text-left ${active?'bg-[#686461] text-white':'text-[#e4dfda] hover:bg-[#393739]'}`}>
           <Icon size={17} strokeWidth={1.55} className={`mr-[22px] shrink-0 ${active?'text-white':'text-[#d3ceca]'}`}/><span className={`truncate text-[15px] ${active?'font-medium':'font-normal'}`}>{item.label}</span>
         </button>})}
       </nav>
