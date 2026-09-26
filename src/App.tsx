@@ -16,10 +16,10 @@ import {
   FigmaProjectCalcView,
 } from './components/figma/FigmaViews';
 import { FigmaInboxView } from './components/figma/FigmaInboxView';
+import { FigmaEvaView } from './components/figma/FigmaEvaView';
+import { FigmaCalendarView } from './components/figma/FigmaCalendarView';
 
 // Existing operational screens kept behind the redesigned shell.
-import { AiManagerView } from './components/assistant/AiManagerView';
-import { CalendarView } from './components/calendar/CalendarView';
 import { SettingsView } from './components/settings/SettingsView';
 import { ClientsListView } from './components/clients/ClientsListView';
 import { ClientCockpitView } from './components/clients/ClientCockpitView';
@@ -45,7 +45,7 @@ const MainContent: React.FC = () => {
 
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f5f2]">
-      <div className="relative flex min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-auto">
         {tab === 'dashboard' && <FigmaDashboardView />}
         {tab === 'deals' && <FigmaDealsView />}
         {tab === 'pipeline' && <FigmaFunnelView />}
@@ -53,8 +53,8 @@ const MainContent: React.FC = () => {
         {tab === 'finance' && <FigmaEconomicsView />}
         {tab === 'project_calc' && <FigmaProjectCalcView />}
         {tab === 'documents' && <FigmaDocumentsView />}
-        {tab === 'ai_manager' && <AiManagerView />}
-        {tab === 'calendar' && <CalendarView />}
+        {tab === 'ai_manager' && <FigmaEvaView />}
+        {tab === 'calendar' && <FigmaCalendarView />}
         {tab === 'settings' && <SettingsView />}
 
         {/* Operational views remain available if opened from links/actions. */}
