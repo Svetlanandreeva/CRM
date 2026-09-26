@@ -79,3 +79,78 @@
   text-transform: uppercase;
   color: #8a837d;
 }
+
+/* Live CRM layout guards: real data must never overlap neighboring blocks. */
+.grid > * {
+  min-width: 0;
+}
+
+.flex > .min-w-0 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+section {
+  min-width: 0;
+}
+
+/* Dashboard KPI row — keep the value and trend in separate reserved areas. */
+div[class~="grid-cols-4"][class~="right-[90px]"] {
+  right: 42px !important;
+}
+
+div[class~="grid-cols-4"] > section > div[class~="left-[90px]"][class~="top-[19px]"] {
+  right: 78px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+div[class~="grid-cols-4"] > section > div[class~="left-[90px]"][class~="top-[19px]"] > div:first-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+div[class~="grid-cols-4"] > section > div[class~="right-[14px]"][class~="top-[20px]"] {
+  z-index: 2;
+  flex: none;
+  padding-left: 7px;
+  white-space: nowrap;
+  background: #fff;
+}
+
+div[class~="grid-cols-4"] > section:last-child > div[class~="left-[90px]"] > div:first-child {
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+
+/* Dashboard lists — long client/project names are allowed to shrink, never push dates/cards. */
+div[class~="top-[480px]"] section > div.flex > div.min-w-0 {
+  width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+div[class~="top-[480px]"] section span,
+div[class~="top-[480px]"] section b {
+  max-width: 100%;
+}
+
+/* Keep dashboard cards clipped to their own columns if an API returns unexpectedly long text. */
+div[class~="top-[214px]"] > section,
+div[class~="top-[480px]"] > section,
+div[class~="top-[806px]"] > section {
+  overflow: hidden;
+}
+
+@media (max-width: 1280px) {
+  div[class~="grid-cols-4"] > section > div[class~="left-[90px]"][class~="top-[19px]"] {
+    left: 82px;
+    right: 72px;
+  }
+
+  div[class~="grid-cols-4"] > section:last-child > div[class~="left-[90px]"] > div:first-child {
+    font-size: 18px;
+  }
+}
