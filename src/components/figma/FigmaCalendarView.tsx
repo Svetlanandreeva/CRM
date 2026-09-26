@@ -9,6 +9,8 @@ const stageStyle:Record<DealStage,{label:string;color:string}>={
 const barPreset=[{l:7,w:27},{l:30,w:18},{l:18,w:58},{l:44,w:24},{l:13,w:16},{l:60,w:33},{l:1,w:10},{l:73,w:23}];
 const code=(i:number)=>`S-${128+i}`;
 const deadlineLabel=(d:Deal,i:number)=>{if(d.stage==='prepayment')return i%2?'просрочено 2 дня':'сегодня';const date=new Date(d.deadline);if(!Number.isNaN(date.getTime()))return new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short'}).format(date);return ['сегодня 16:00','28 сен','завтра','30 сен','29 сен'][i%5]};
+const timelineLeft=(percent:number)=>`${22.04+percent*.7796}%`;
+const timelineWidth=(percent:number)=>`${percent*.7796}%`;
 
 export const FigmaCalendarView:React.FC=()=>{
   const{deals,setSelectedDealId,setCurrentTab,theme,toggleTheme}=useCrm();
@@ -30,11 +32,11 @@ export const FigmaCalendarView:React.FC=()=>{
       <div className="absolute left-[16px] right-[16px] top-[111px]">
         {rows.map((d,i)=>{const st=stageStyle[d.stage];const p=barPreset[i%barPreset.length];const alert=d.stage==='prepayment'||i===0||i===1||i===6;return <button key={d.id} onClick={()=>{setSelectedDealId(d.id);setCurrentTab('deals')}} className={`relative block h-[75px] w-full border-b border-[#ebe5e0] text-left ${i%2?'bg-[#fbfaf7]':'bg-white'}`}>
           <span className="absolute left-[16px] top-[19px] text-[10px] font-medium text-[#7d756e]">{code(i)}</span><span className="absolute left-[74px] top-[17px] w-[185px] truncate text-[11px] font-semibold">{d.title} · {d.clientName}</span><span className="absolute left-[74px] top-[39px] w-[185px] truncate text-[9px] text-[#7d756e]">{st.label}</span>
-          <span className="absolute top-[20px] h-[30px] rounded-[15px] px-[12px] pt-[7px] text-[9px] font-medium" style={{left:`calc(264px + ${p.l}% * (100% - 264px) / 100)`,width:`calc(${p.w}% * (100% - 264px) / 100)`,background:st.color}}>{st.label}</span><span className={`absolute right-[12px] bottom-[6px] text-[8px] ${alert?'text-[#c7616b]':'text-[#7d756e]'}`}>{deadlineLabel(d,i)}</span>
+          <span className="absolute top-[20px] h-[30px] overflow-hidden rounded-[15px] px-[12px] pt-[7px] text-[9px] font-medium" style={{left:timelineLeft(p.l),width:timelineWidth(p.w),background:st.color}}>{st.label}</span><span className={`absolute right-[12px] bottom-[6px] text-[8px] ${alert?'text-[#c7616b]':'text-[#7d756e]'}`}>{deadlineLabel(d,i)}</span>
         </button>})}
       </div>
-      <div className="absolute bottom-[41px] left-[calc(280px+3.5*(100%-296px)/7)] top-[111px] w-px bg-[#e3999e]"/>
-      <div className="absolute bottom-[25px] left-[calc(280px+3.5*(100%-296px)/7-25px)] text-[8px] text-[#c7616b]">сегодня</div>
+      <div className="absolute bottom-[41px] top-[111px] w-px bg-[#e3999e]" style={{left:'60.5%'}}/>
+      <div className="absolute bottom-[25px] text-[8px] text-[#c7616b]" style={{left:'58.5%'}}>сегодня</div>
     </section>
   </div>;
 };
