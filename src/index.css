@@ -144,6 +144,84 @@ div[class~="top-[806px]"] > section {
   overflow: hidden;
 }
 
+/* Dashboard economy card — real values must stay readable and never wrap into the donut. */
+div[class~="top-[806px]"][class~="h-[160px]"] {
+  height: 174px !important;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) {
+  position: relative;
+  padding: 18px 20px !important;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > h2 {
+  margin: 0;
+  line-height: 1.15;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"][class~="top-[50px]"] {
+  left: 28px !important;
+  top: 43px !important;
+  width: 104px !important;
+  height: 104px !important;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] > div[class~="h-[72px]"] {
+  width: 76px !important;
+  height: 76px !important;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] b {
+  display: block;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px !important;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] div[class~="text-[9px]"] {
+  margin-top: 3px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"][class~="top-[52px]"] {
+  left: 154px !important;
+  right: 18px !important;
+  top: 48px !important;
+  display: grid;
+  gap: 10px;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > b {
+  min-width: 88px;
+  text-align: right;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] i {
+  margin-right: 9px !important;
+}
+
 @media (max-width: 1280px) {
   div[class~="grid-cols-4"] > section > div[class~="left-[90px]"][class~="top-[19px]"] {
     left: 82px;
@@ -152,5 +230,21 @@ div[class~="top-[806px]"] > section {
 
   div[class~="grid-cols-4"] > section:last-child > div[class~="left-[90px]"] > div:first-child {
     font-size: 18px;
+  }
+
+  div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"][class~="top-[50px]"] {
+    left: 22px !important;
+    width: 96px !important;
+    height: 96px !important;
+  }
+
+  div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"][class~="top-[52px]"] {
+    left: 132px !important;
+    right: 14px !important;
+  }
+
+  div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > b {
+    min-width: 76px;
+    font-size: 10px;
   }
 }
