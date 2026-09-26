@@ -80,7 +80,6 @@
   color: #8a837d;
 }
 
-/* Live CRM layout guards: real data must never overlap neighboring blocks. */
 .grid > * {
   min-width: 0;
 }
@@ -94,7 +93,7 @@ section {
   min-width: 0;
 }
 
-/* Dashboard KPI row — keep the value and trend in separate reserved areas. */
+/* Dashboard KPI row */
 div[class~="grid-cols-4"][class~="right-[90px]"] {
   right: 42px !important;
 }
@@ -125,7 +124,7 @@ div[class~="grid-cols-4"] > section:last-child > div[class~="left-[90px]"] > div
   letter-spacing: -0.025em;
 }
 
-/* Dashboard lists — long client/project names are allowed to shrink, never push dates/cards. */
+/* Dashboard lists */
 div[class~="top-[480px]"] section > div.flex > div.min-w-0 {
   width: 0;
   flex: 1 1 auto;
@@ -137,14 +136,13 @@ div[class~="top-[480px]"] section b {
   max-width: 100%;
 }
 
-/* Keep dashboard cards clipped to their own columns if an API returns unexpectedly long text. */
 div[class~="top-[214px]"] > section,
 div[class~="top-[480px]"] > section,
 div[class~="top-[806px]"] > section {
   overflow: hidden;
 }
 
-/* Dashboard economy card: compact 2-column composition matching the Figma card. */
+/* Dashboard economy card — keep everything visually grouped, like the Figma summary card. */
 div[class~="top-[806px]"][class~="h-[160px]"] {
   height: 160px !important;
 }
@@ -159,59 +157,63 @@ div[class~="top-[806px]"] > section:nth-child(2) > h2 {
   line-height: 1.1;
 }
 
-/* Donut */
+/* compact donut, vertically centered */
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"][class~="top-[50px]"] {
-  left: 24px !important;
-  top: 45px !important;
-  width: 96px !important;
-  height: 96px !important;
+  left: 28px !important;
+  top: 54px !important;
+  width: 82px !important;
+  height: 82px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] > div[class~="h-[72px]"] {
-  width: 68px !important;
-  height: 68px !important;
+  width: 58px !important;
+  height: 58px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] b {
   display: block;
-  max-width: 64px;
+  max-width: 56px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px !important;
+  font-size: 11px !important;
   line-height: 1.05;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"] div[class~="text-[9px]"] {
-  margin-top: 3px;
+  margin-top: 2px;
   font-size: 8px !important;
   line-height: 1;
   white-space: nowrap;
 }
 
-/* Legend: dot | label | amount. No wrapping, no row splitting. */
+/* compact legend cluster */
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"][class~="top-[52px]"] {
-  left: 142px !important;
+  left: 130px !important;
   right: 18px !important;
-  top: 48px !important;
+  top: 50px !important;
+  width: auto !important;
   display: grid !important;
-  gap: 8px !important;
+  grid-auto-rows: 24px;
+  gap: 2px !important;
+  font-size: 10px !important;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div {
   display: grid !important;
-  grid-template-columns: 10px minmax(0, 1fr) max-content !important;
+  grid-template-columns: 8px 82px auto !important;
+  justify-content: start !important;
   align-items: center !important;
-  column-gap: 9px !important;
+  column-gap: 7px !important;
   min-width: 0;
-  min-height: 22px;
+  min-height: 24px;
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > i {
   margin: 0 !important;
-  width: 9px !important;
-  height: 9px !important;
+  width: 8px !important;
+  height: 8px !important;
   flex: none;
 }
 
@@ -225,7 +227,7 @@ div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > 
 }
 
 div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > b {
-  min-width: 0;
+  min-width: 82px;
   margin: 0;
   text-align: right;
   white-space: nowrap;
@@ -245,22 +247,23 @@ div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > 
   }
 
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[40px]"][class~="top-[50px]"] {
-    left: 20px !important;
-    width: 90px !important;
-    height: 90px !important;
+    left: 22px !important;
+    width: 78px !important;
+    height: 78px !important;
   }
 
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"][class~="top-[52px]"] {
-    left: 124px !important;
+    left: 112px !important;
     right: 12px !important;
   }
 
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div {
-    column-gap: 7px !important;
+    grid-template-columns: 8px 72px auto !important;
+    column-gap: 6px !important;
   }
 
-  div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > span,
   div[class~="top-[806px]"] > section:nth-child(2) > div[class~="left-[190px]"] > div > b {
+    min-width: 72px;
     font-size: 9px;
   }
 }
