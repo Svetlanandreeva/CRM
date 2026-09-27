@@ -25,7 +25,7 @@ import { CallListView } from './components/calls/CallListView';
 
 import { SettingsView } from './components/settings/SettingsView';
 import { ClientsListView } from './components/clients/ClientsListView';
-import { ClientCockpitView } from './components/clients/ClientCockpitView';
+import { LiveClientView } from './components/clients/LiveClientView';
 import { ProductionOrdersView } from './components/production/ProductionOrdersView';
 import { TasksView } from './components/tasks/TasksView';
 import { CatalogView } from './components/catalog/CatalogView';
@@ -69,7 +69,7 @@ const MainContent: React.FC = () => {
         {tab === 'calendar' && <FigmaCalendarView />}
         {tab === 'settings' && <SettingsView />}
         {tab === 'clients' && <ClientsListView />}
-        {tab === 'client_cockpit' && <ClientCockpitView />}
+        {tab === 'client_cockpit' && <LiveClientView />}
         {tab === 'production' && <ProductionOrdersView />}
         {tab === 'tasks' && <TasksView />}
         {tab === 'catalog' && <CatalogView />}
