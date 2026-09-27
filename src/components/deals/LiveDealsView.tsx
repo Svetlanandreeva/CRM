@@ -51,6 +51,7 @@ const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack
   const client = clients.find(c => c.id === deal.clientId);
   const paid = payments.filter(p => p.dealId === deal.id && p.direction === 'inflow' && p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
   const costs = payments.filter(p => p.dealId === deal.id && p.direction === 'outflow' && p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
+  const result = paid - costs;
   const docs = documents.filter(d => d.dealId === deal.id);
 
   return <div className="min-h-full bg-[#f7f5f2] px-7 py-7 text-[#1f1d1c] lg:px-10">
@@ -64,9 +65,9 @@ const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack
             {Object.entries(stageMeta).map(([id, meta]) => <button key={id} onClick={() => updateDealStage(deal.id, id as DealStage)} className={`rounded-full px-3 py-2 text-[10px] ${deal.stage === id ? 'ring-2 ring-[#2a292b]/20' : ''}`} style={{ background: meta.bg }}>{meta.label}</button>)}
           </div>
           <div className="mt-7 grid gap-3 sm:grid-cols-3">
-            <Metric value={money(deal.amount)} label="Сумма сделки" tone="#f8e5d2"/>
-            <Metric value={money(paid)} label="Получено" tone="#ddefe4"/>
-            <Metric value={money(costs || deal.primeCost)} label="Расходы" tone="#f7dde4"/>
+            <Metric value={money(paid)} label="Оплачено" tone="#ddefe4"/>
+            <Metric value={money(costs)} label="Расходы факт" tone="#f7dde4"/>
+            <Metric value={money(result)} label="Денежный результат" tone="#f8e5d2"/>
           </div>
           <div className="mt-6 grid gap-4 text-[11px] sm:grid-cols-2">
             <div><span className="text-[#817a74]">Срок</span><b className="mt-1 block">{dateLabel(deal.deadline)}</b></div>
@@ -89,13 +90,22 @@ const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack
 };
 
 export const LiveDealsView: React.FC = () => {
-  const { deals, selectedDealId, setSelectedDealId, setIsCreateDealOpen } = useCrm();
+  const { deals, payments, selectedDealId, setSelectedDealId, setIsCreateDealOpen } = useCrm();
   const [query, setQuery] = useState('');
   const [stageFilter, setStageFilter] = useState<'all' | 'active' | 'closed'>('all');
 
+  const paidByDeal = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const payment of payments) {
+      if (payment.direction !== 'inflow' || payment.status !== 'completed') continue;
+      map.set(payment.dealId, (map.get(payment.dealId) || 0) + payment.amount);
+    }
+    return map;
+  }, [payments]);
+
   const active = useMemo(() => deals.filter(d => activeStage(d.stage)), [deals]);
   const awaiting = useMemo(() => deals.filter(d => d.stage === 'prepayment'), [deals]);
-  const work = useMemo(() => active.reduce((sum, d) => sum + d.amount, 0), [active]);
+  const work = useMemo(() => active.reduce((sum, d) => sum + (paidByDeal.get(d.id) || 0), 0), [active, paidByDeal]);
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -137,22 +147,22 @@ export const LiveDealsView: React.FC = () => {
         <Metric value={deals.length} label="Все сделки" tone="#dcebfa"/>
         <Metric value={active.length} label="В работе" tone="#f8e5d2"/>
         <Metric value={awaiting.length} label="Ожидают оплаты" tone="#f5d4da"/>
-        <Metric value={compactMoney(work)} label="Сумма в работе" tone="#e5defa"/>
+        <Metric value={compactMoney(work)} label="Оплачено по активным" tone="#e5defa"/>
       </div>
 
       <section className="mt-5 overflow-hidden rounded-[18px] border border-[#e8e3de] bg-white">
         <div className="flex items-center justify-between px-5 py-4">
           <h2 className="text-[18px] font-semibold">Все сделки</h2>
-          <span className="text-[10px] text-[#817a74]">Только подтверждённые сделки CRM</span>
+          <span className="text-[10px] text-[#817a74]">Суммы — только фактически полученные оплаты</span>
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
-            <div className="grid grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_88px] gap-3 bg-[#fbfaf8] px-5 py-3 text-[10px] text-[#817a74]"><span>Клиент</span><span>Сделка</span><span>Этап</span><span>Сумма</span><span>Срок</span><span/></div>
+            <div className="grid grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_88px] gap-3 bg-[#fbfaf8] px-5 py-3 text-[10px] text-[#817a74]"><span>Клиент</span><span>Сделка</span><span>Этап</span><span>Оплачено</span><span>Срок</span><span/></div>
             {shown.length ? shown.map((d, index) => <div key={d.id} className={`grid min-h-[58px] grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_88px] items-center gap-3 border-t border-[#f0ece7] px-5 py-2.5 text-[11px] ${index % 2 ? 'bg-[#fdfcfb]' : ''}`}>
               <b className="truncate">{d.clientName}</b>
               <span className="truncate">{d.title}</span>
               <span className="w-fit rounded-[10px] px-2.5 py-1.5 text-[10px]" style={{ background: stageMeta[d.stage].bg }}>{stageMeta[d.stage].label}</span>
-              <b>{money(d.amount)}</b>
+              <b>{money(paidByDeal.get(d.id) || 0)}</b>
               <span className="text-[#6d6762]">{dateLabel(d.deadline)}</span>
               <button onClick={() => setSelectedDealId(d.id)} className="rounded-[9px] border border-[#e8e3de] bg-white px-2 py-1.5 text-[9px]">Подробнее</button>
             </div>) : <div className="grid h-40 place-items-center text-[12px] text-[#918a84]">Сделок по этому фильтру нет</div>}
