@@ -67,8 +67,10 @@ export const LiveDashboardView:React.FC=()=>{
     {label:'Закрыто',count:deals.filter(d=>['closed_won','closed_lost'].includes(d.stage)).length,color:'#7fa18f'},
   ];
   const stageDonut=donut(groups.map(g=>({value:g.count,color:g.color})));
-  const confirmedPaid=payments.filter(p=>p.direction==='inflow'&&p.status==='completed').reduce((s,p)=>s+p.amount,0);
-  const paidDeals=new Set(payments.filter(p=>p.direction==='inflow'&&p.status==='completed'&&p.amount>0).map(p=>p.dealId)).size;
+  const liveDealIds=useMemo(()=>new Set(deals.map(d=>String(d.id))),[deals]);
+  const linkedPayments=payments.filter(p=>liveDealIds.has(String(p.dealId))&&p.direction==='inflow'&&p.status==='completed');
+  const confirmedPaid=linkedPayments.reduce((s,p)=>s+p.amount,0);
+  const paidDeals=new Set(linkedPayments.filter(p=>p.amount>0).map(p=>String(p.dealId))).size;
 
   const openTasks=[...tasks].filter(t=>!t.completed).sort((a,b)=>(dateMs(a.deadline)||Infinity)-(dateMs(b.deadline)||Infinity)).slice(0,5);
   const recentActivities=[...activities].sort((a,b)=>dateMs(b.createdAt)-dateMs(a.createdAt)).slice(0,5);
@@ -85,7 +87,7 @@ export const LiveDashboardView:React.FC=()=>{
   const projectBar=(deal:Deal)=>{const end=dateMs(deal.deadline);const start=Math.max(weekStart.getTime(),dateMs(deal.createdAt)||weekStart.getTime());const left=Math.max(0,Math.min(96,((start-weekStart.getTime())/(7*86400000))*100));const width=Math.max(5,Math.min(100-left,((Math.max(end,start+86400000)-start)/(7*86400000))*100));return{left:`${left}%`,width:`${width}%`}};
   const weekLabel=`${shortDate(weekStart.toISOString())} — ${shortDate(addDays(weekStart,6).toISOString())}`;
 
-  const totalCosts=economics.reduce((s,r)=>s+Math.max(0,Number(r.totalCost||0))/100,0);
+  const totalCosts=economics.filter(r=>liveDealIds.has(String(r.dealId))).reduce((s,r)=>s+Math.max(0,Number(r.totalCost||0))/100,0);
   const totalProfit=Math.max(0,confirmedPaid-totalCosts);
   const economyDonut=donut([{value:confirmedPaid,color:'#dcc9b7'},{value:totalCosts,color:'#8eb4df'}]);
 
@@ -103,8 +105,8 @@ export const LiveDashboardView:React.FC=()=>{
         {icon:<MessageCircle size={20}/>,bg:'#dcebfa',value:newLeads,label:'Новые заявки'},
         {icon:<BarChart3 size={20}/>,bg:'#f8e5d2',value:inWork,label:'В работе'},
         {icon:<Check size={20}/>,bg:'#f5d4da',value:agreement,label:'На согласовании'},
-        {icon:<Wallet size={20}/>,bg:'#e5defa',value:compactMoney(confirmedPaid),label:'Получено оплат'},
-      ].map(item=><Card key={item.label} className="relative h-[110px]"><span className="absolute left-[18px] top-[20px] grid h-[56px] w-[56px] place-items-center rounded-[16px]" style={{background:item.bg}}>{item.icon}</span><b className="absolute left-[90px] top-[18px] max-w-[164px] truncate text-[23px] font-medium">{item.value}</b><span className="absolute left-[90px] top-[56px] text-[12px] text-[#6d6762]">{item.label}</span></Card>)}
+        {icon:<Wallet size={20}/>,bg:'#e5defa',value:compactMoney(confirmedPaid),label:'Получено оплат',onClick:()=>setCurrentTab('deals')},
+      ].map(item=><Card key={item.label} onClick={item.onClick} className="relative h-[110px]"><span className="absolute left-[18px] top-[20px] grid h-[56px] w-[56px] place-items-center rounded-[16px]" style={{background:item.bg}}>{item.icon}</span><b className="absolute left-[90px] top-[18px] max-w-[164px] truncate text-[23px] font-medium">{item.value}</b><span className="absolute left-[90px] top-[56px] text-[12px] text-[#6d6762]">{item.label}</span></Card>)}
     </div>
 
     <div className="mt-[18px] grid grid-cols-[715px_512px] gap-[18px]">
