@@ -8,6 +8,7 @@ import { money, stageMeta } from '../figma/FigmaViews';
 
 type ViewTab = 'history'|'deals'|'tasks'|'finance'|'documents';
 type HistoryChannel = 'email'|'telegram'|'activity';
+type HistoryFilter = 'messages'|'all'|HistoryChannel;
 type TimelineItem = {
   id:string;
   channel:HistoryChannel;
@@ -34,8 +35,22 @@ type TimelinePayload = {
 type LiveDocument = {id:string;name:string;kind?:string;sizeBytes?:number;createdAt?:number|string};
 
 const Card:React.FC<React.PropsWithChildren<{className?:string}>>=({children,className=''})=><section className={`rounded-[18px] border border-[#e8e3de] bg-white ${className}`}>{children}</section>;
-const dateTime=(value?:string|null)=>{if(!value)return'—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d).replace('.','')};
-const shortDate=(value?:string|null)=>{if(!value)return'—';const d=new Date(value);return Number.isNaN(d.getTime())?'—':new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',year:'numeric'}).format(d).replace('.','')};
+
+function parseCrmDate(value?:string|null){
+  if(!value)return null;
+  let d=new Date(value);
+  if(Number.isNaN(d.getTime())){
+    const n=Number(value);
+    if(Number.isFinite(n))d=new Date(Math.abs(n)<100_000_000_000?n*1000:Math.abs(n)<100_000_000_000_000?n:n/1000);
+  }
+  if(Number.isNaN(d.getTime()))return null;
+  let guard=0;
+  while(d.getUTCFullYear()>2100&&guard<3){d=new Date(d.getTime()/1000);guard+=1;}
+  if(d.getUTCFullYear()<2000||d.getUTCFullYear()>2100)return null;
+  return d;
+}
+const dateTime=(value?:string|null)=>{const d=parseCrmDate(value);return !d?'—':new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(d).replace('.','')};
+const shortDate=(value?:string|null)=>{const d=parseCrmDate(value);return !d?'—':new Intl.DateTimeFormat('ru-RU',{day:'numeric',month:'short',year:'numeric'}).format(d).replace('.','')};
 const channelLabel=(channel:HistoryChannel)=>channel==='email'?'Email':channel==='telegram'?'Telegram':'CRM';
 const channelTone=(channel:HistoryChannel)=>channel==='email'?'#f8e5d2':channel==='telegram'?'#dceaf7':'#eee9e3';
 
@@ -50,7 +65,7 @@ export const LiveClientView:React.FC=()=>{
   const[documents,setDocuments]=useState<LiveDocument[]>([]);
   const[loading,setLoading]=useState(false);
   const[error,setError]=useState('');
-  const[channelFilter,setChannelFilter]=useState<'all'|HistoryChannel>('all');
+  const[channelFilter,setChannelFilter]=useState<HistoryFilter>('messages');
 
   async function load(){
     if(!client)return;
@@ -74,18 +89,20 @@ export const LiveClientView:React.FC=()=>{
 
   const clientDeals=deals.filter(d=>d.clientId===client.id);
   const activeDeals=clientDeals.filter(d=>!['closed_won','closed_lost'].includes(d.stage));
-  const clientTasks=tasks.filter(t=>t.clientId===client.id).sort((a,b)=>+new Date(a.deadline)-+new Date(b.deadline));
+  const clientTasks=tasks.filter(t=>t.clientId===client.id).sort((a,b)=>(parseCrmDate(a.deadline)?.getTime()||0)-(parseCrmDate(b.deadline)?.getTime()||0));
   const openTasks=clientTasks.filter(t=>!t.completed);
   const clientPayments=payments.filter(p=>p.clientId===client.id&&p.status==='completed');
   const paid=clientPayments.filter(p=>p.direction==='inflow').reduce((s,p)=>s+p.amount,0);
   const expenses=clientPayments.filter(p=>p.direction==='outflow').reduce((s,p)=>s+p.amount,0);
-  const history=(data?.history||[]).filter(item=>channelFilter==='all'||item.channel===channelFilter);
+  const rawHistory=data?.history||[];
+  const conversationHistory=rawHistory.filter(item=>item.channel!=='activity');
+  const history=rawHistory.filter(item=>channelFilter==='all'||(channelFilter==='messages'?item.channel!=='activity':item.channel===channelFilter));
   const participants=data?.participants||[];
-  const incoming=(data?.history||[]).filter(x=>x.direction==='incoming').length;
-  const outgoing=(data?.history||[]).filter(x=>x.direction==='outgoing').length;
+  const incoming=conversationHistory.filter(x=>x.direction==='incoming').length;
+  const outgoing=conversationHistory.filter(x=>x.direction==='outgoing').length;
 
   const tabs:[ViewTab,string,number][]=[
-    ['history','История',data?.history?.length||0],['deals','Сделки',clientDeals.length],['tasks','Задачи',clientTasks.length],['finance','Оплаты',clientPayments.length],['documents','Документы',documents.length],
+    ['history','История',conversationHistory.length],['deals','Сделки',clientDeals.length],['tasks','Задачи',clientTasks.length],['finance','Оплаты',clientPayments.length],['documents','Документы',documents.length],
   ];
 
   return <div className="min-h-full bg-[#f7f5f2] px-6 py-6 text-[#1f1d1c] lg:px-9">
@@ -128,7 +145,7 @@ export const LiveClientView:React.FC=()=>{
 
       {tab==='history'&&<div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card className="overflow-hidden">
-          <div className="flex flex-wrap items-center gap-2 border-b border-[#eeeae6] px-5 py-4"><h2 className="mr-auto text-[18px] font-semibold">Диалог и история</h2>{(['all','email','telegram','activity'] as const).map(f=><button key={f} onClick={()=>setChannelFilter(f)} className={`rounded-full px-3 py-1.5 text-[9px] ${channelFilter===f?'bg-[#2a292b] text-white':'bg-[#f7f5f2]'}`}>{f==='all'?'Всё':f==='email'?'Email':f==='telegram'?'Telegram':'CRM'}</button>)}</div>
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#eeeae6] px-5 py-4"><h2 className="mr-auto text-[18px] font-semibold">Диалог и история</h2>{(['messages','email','telegram','activity','all'] as const).map(f=><button key={f} onClick={()=>setChannelFilter(f)} className={`rounded-full px-3 py-1.5 text-[9px] ${channelFilter===f?'bg-[#2a292b] text-white':'bg-[#f7f5f2]'}`}>{f==='messages'?'Переписка':f==='email'?'Email':f==='telegram'?'Telegram':f==='activity'?'CRM':'Всё'}</button>)}</div>
           <div className="max-h-[650px] overflow-y-auto p-5">
             {loading&&!data?<div className="py-20 text-center text-[11px] text-[#817a74]">Загружаю историю…</div>:history.length?history.map(item=><div key={item.id} className="mb-4 flex gap-3">
               <span className="mt-1 grid h-9 w-9 shrink-0 place-items-center rounded-full text-[9px] font-semibold" style={{background:channelTone(item.channel)}}>{item.channel==='email'?'@':item.channel==='telegram'?'TG':'CRM'}</span>
@@ -136,7 +153,7 @@ export const LiveClientView:React.FC=()=>{
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px] text-[#817a74]"><b className="text-[10px] text-[#3b3734]">{item.sender}</b><span>{channelLabel(item.channel)}</span>{item.subject&&item.channel==='email'&&<span className="truncate">· {item.subject}</span>}<span className="ml-auto">{dateTime(item.timestamp)}</span></div>
                 <div className="mt-2 whitespace-pre-wrap break-words text-[11px] leading-5 text-[#3f3a36]">{item.body}</div>
               </div>
-            </div>):<div className="py-20 text-center text-[11px] text-[#817a74]">По этому клиенту история пока не найдена</div>}
+            </div>):<div className="py-20 text-center text-[11px] text-[#817a74]">По этому клиенту переписка пока не найдена</div>}
           </div>
         </Card>
         <div className="space-y-4">
