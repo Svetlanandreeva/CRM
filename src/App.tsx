@@ -9,7 +9,6 @@ import { CrmProvider, useCrm } from './context/CrmContext';
 import { Sidebar } from './components/common/Sidebar';
 
 import {
-  FigmaDealsView,
   FigmaDocumentsView,
   FigmaEconomicsView,
   FigmaFunnelView,
@@ -21,6 +20,8 @@ import { FigmaEvaView } from './components/figma/FigmaEvaView';
 import { FigmaCalendarView } from './components/figma/FigmaCalendarView';
 import { MobileCrmView } from './components/figma/FigmaMobileViews';
 import { MobileLiveEva, MobileLiveInbox } from './components/figma/MobileLiveChannels';
+import { LiveDealsView } from './components/deals/LiveDealsView';
+import { CallListView } from './components/calls/CallListView';
 
 import { SettingsView } from './components/settings/SettingsView';
 import { ClientsListView } from './components/clients/ClientsListView';
@@ -57,7 +58,8 @@ const MainContent: React.FC = () => {
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f5f2]">
       <div className="relative min-h-0 flex-1 overflow-auto">
         {tab === 'dashboard' && <LiveDashboardView />}
-        {tab === 'deals' && <FigmaDealsView />}
+        {tab === 'call_list' && <CallListView />}
+        {tab === 'deals' && <LiveDealsView />}
         {tab === 'pipeline' && <FigmaFunnelView />}
         {tab === 'inbox' && <FigmaInboxView />}
         {tab === 'finance' && <FigmaEconomicsView />}
@@ -94,6 +96,8 @@ const useIsMobile = () => {
 
 const MobileApp: React.FC = () => {
   const { currentTab, setCurrentTab } = useCrm();
+  const tab = String(currentTab);
+  if (tab === 'call_list') return <><CallListView /><GlobalOverlays /></>;
   if (currentTab === 'inbox') return <><MobileLiveInbox /><GlobalOverlays /></>;
   if (currentTab === 'ai_manager') return <><MobileLiveEva /><GlobalOverlays /></>;
   if (currentTab === 'integrations') return <div className="min-h-[100dvh] w-screen overflow-x-auto bg-[#f7f5f1] font-sans text-[#181a20]">
