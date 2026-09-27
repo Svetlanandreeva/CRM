@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   CalendarDays, CircleDot, FileText, Home, MessageCircle, PhoneCall, Plug, Search, Settings,
-  Sigma, Sparkles, TrendingUp, Triangle,
+  Sigma, Sparkles, TrendingUp, Triangle, Users,
 } from 'lucide-react';
 import { useCrm, type NavigationTab } from '../../context/CrmContext';
 
@@ -10,6 +10,7 @@ type Item = { id: NavigationTab; label: string; icon: React.FC<{ className?: str
 const nav: Item[] = [
   { id: 'dashboard', label: 'Главная', icon: Home },
   { id: 'call_list' as NavigationTab, label: 'Обзвоны', icon: PhoneCall },
+  { id: 'clients', label: 'Клиенты', icon: Users },
   { id: 'deals', label: 'Сделки', icon: CircleDot },
   { id: 'pipeline', label: 'Воронка', icon: Triangle },
   { id: 'inbox', label: 'Чаты', icon: MessageCircle },
