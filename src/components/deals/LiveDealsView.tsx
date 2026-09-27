@@ -47,12 +47,17 @@ const ThemePill: React.FC = () => {
 };
 
 const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack }) => {
-  const { clients, payments, documents, updateDealStage } = useCrm();
+  const { clients, payments, documents, updateDealStage, setSelectedClientId, setSelectedDealId, setCurrentTab } = useCrm();
   const client = clients.find(c => c.id === deal.clientId);
   const paid = payments.filter(p => p.dealId === deal.id && p.direction === 'inflow' && p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
   const costs = payments.filter(p => p.dealId === deal.id && p.direction === 'outflow' && p.status === 'completed').reduce((sum, p) => sum + p.amount, 0);
   const result = paid - costs;
   const docs = documents.filter(d => d.dealId === deal.id);
+  const openClientCard = () => {
+    setSelectedDealId(null);
+    setSelectedClientId(deal.clientId);
+    setCurrentTab('client_cockpit');
+  };
 
   return <div className="min-h-full bg-[#f7f5f2] px-7 py-7 text-[#1f1d1c] lg:px-10">
     <div className="mx-auto max-w-[1500px]">
@@ -60,7 +65,7 @@ const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack
       <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
         <section className="rounded-[18px] border border-[#e8e3de] bg-white p-6">
           <h1 className="text-[28px] font-semibold tracking-[-.03em]">{deal.title}</h1>
-          <div className="mt-1 text-[12px] text-[#817a74]">{deal.clientName}</div>
+          <button onClick={openClientCard} className="mt-1 text-left text-[12px] text-[#817a74] underline-offset-2 hover:underline">{deal.clientName} · открыть карточку клиента</button>
           <div className="mt-5 flex flex-wrap gap-2">
             {Object.entries(stageMeta).map(([id, meta]) => <button key={id} onClick={() => updateDealStage(deal.id, id as DealStage)} className={`rounded-full px-3 py-2 text-[10px] ${deal.stage === id ? 'ring-2 ring-[#2a292b]/20' : ''}`} style={{ background: meta.bg }}>{meta.label}</button>)}
           </div>
@@ -76,8 +81,13 @@ const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack
         </section>
         <div className="space-y-5">
           <section className="rounded-[18px] border border-[#e8e3de] bg-white p-5">
-            <h2 className="text-[18px] font-semibold">Клиент</h2>
-            <div className="mt-4 text-[11px] leading-7"><b>{client?.company || client?.name || deal.clientName}</b><br/>{client?.phone || 'Телефон не указан'}<br/>{client?.email || 'Email не указан'}</div>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[18px] font-semibold">Клиент</h2>
+              <button onClick={openClientCard} className="rounded-full bg-[#2a292b] px-3 py-2 text-[10px] text-white">Карточка и переписка →</button>
+            </div>
+            <button onClick={openClientCard} className="mt-4 block w-full rounded-[12px] bg-[#fbfaf8] p-3 text-left text-[11px] leading-7 hover:bg-[#f6f2ee]">
+              <b>{client?.company || client?.name || deal.clientName}</b><br/>{client?.phone || 'Телефон не указан'}<br/>{client?.email || 'Email не указан'}
+            </button>
           </section>
           <section className="rounded-[18px] border border-[#e8e3de] bg-white p-5">
             <h2 className="text-[18px] font-semibold">Документы</h2>
@@ -90,7 +100,7 @@ const DealDetail: React.FC<{ deal: Deal; onBack: () => void }> = ({ deal, onBack
 };
 
 export const LiveDealsView: React.FC = () => {
-  const { deals, payments, selectedDealId, setSelectedDealId, setIsCreateDealOpen } = useCrm();
+  const { deals, payments, selectedDealId, setSelectedDealId, setIsCreateDealOpen, setSelectedClientId, setCurrentTab } = useCrm();
   const [query, setQuery] = useState('');
   const [stageFilter, setStageFilter] = useState<'all' | 'active' | 'closed'>('all');
 
@@ -115,6 +125,12 @@ export const LiveDealsView: React.FC = () => {
       return !needle || `${d.clientName} ${d.title}`.toLowerCase().includes(needle);
     });
   }, [deals, query, stageFilter]);
+
+  const openClientCard = (clientId: string) => {
+    setSelectedDealId(null);
+    setSelectedClientId(clientId);
+    setCurrentTab('client_cockpit');
+  };
 
   const selected = selectedDealId ? deals.find(d => d.id === selectedDealId) : undefined;
   if (selected) return <DealDetail deal={selected} onBack={() => setSelectedDealId(null)}/>;
@@ -157,14 +173,14 @@ export const LiveDealsView: React.FC = () => {
         </div>
         <div className="overflow-x-auto">
           <div className="min-w-[900px]">
-            <div className="grid grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_88px] gap-3 bg-[#fbfaf8] px-5 py-3 text-[10px] text-[#817a74]"><span>Клиент</span><span>Сделка</span><span>Этап</span><span>Оплачено</span><span>Срок</span><span/></div>
-            {shown.length ? shown.map((d, index) => <div key={d.id} className={`grid min-h-[58px] grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_88px] items-center gap-3 border-t border-[#f0ece7] px-5 py-2.5 text-[11px] ${index % 2 ? 'bg-[#fdfcfb]' : ''}`}>
-              <b className="truncate">{d.clientName}</b>
-              <span className="truncate">{d.title}</span>
+            <div className="grid grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_100px] gap-3 bg-[#fbfaf8] px-5 py-3 text-[10px] text-[#817a74]"><span>Клиент</span><span>Сделка</span><span>Этап</span><span>Оплачено</span><span>Срок</span><span/></div>
+            {shown.length ? shown.map((d, index) => <div key={d.id} className={`grid min-h-[58px] grid-cols-[1.1fr_1.45fr_1fr_.8fr_1fr_100px] items-center gap-3 border-t border-[#f0ece7] px-5 py-2.5 text-[11px] ${index % 2 ? 'bg-[#fdfcfb]' : ''}`}>
+              <button onClick={() => openClientCard(d.clientId)} className="truncate text-left font-semibold underline-offset-2 hover:underline">{d.clientName}</button>
+              <button onClick={() => setSelectedDealId(d.id)} className="truncate text-left underline-offset-2 hover:underline">{d.title}</button>
               <span className="w-fit rounded-[10px] px-2.5 py-1.5 text-[10px]" style={{ background: stageMeta[d.stage].bg }}>{stageMeta[d.stage].label}</span>
               <b>{money(paidByDeal.get(d.id) || 0)}</b>
               <span className="text-[#6d6762]">{dateLabel(d.deadline)}</span>
-              <button onClick={() => setSelectedDealId(d.id)} className="rounded-[9px] border border-[#e8e3de] bg-white px-2 py-1.5 text-[9px]">Подробнее</button>
+              <button onClick={() => openClientCard(d.clientId)} className="rounded-[9px] border border-[#e8e3de] bg-white px-2 py-1.5 text-[9px]">Карточка</button>
             </div>) : <div className="grid h-40 place-items-center text-[12px] text-[#918a84]">Сделок по этому фильтру нет</div>}
           </div>
         </div>
