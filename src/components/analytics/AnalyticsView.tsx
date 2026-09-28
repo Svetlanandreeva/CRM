@@ -1,214 +1,59 @@
-import React from 'react';
-import {
-  TrendingUp,
-  AlertOctagon,
-  Award
-} from 'lucide-react';
+import React, { useMemo } from 'react';
+import { BarChart3, CircleDollarSign, PieChart, Users } from 'lucide-react';
 import { useCrm } from '../../context/CrmContext';
-import { DEAL_STAGES } from '../../data/mockData';
-import { CustomerEngagementHeatmap } from './CustomerEngagementHeatmap';
 
-export const AnalyticsView: React.FC = () => {
-  const { clients, deals, managers, theme } = useCrm();
-  const isLight = theme === 'light';
+const money=(v=0)=>`${new Intl.NumberFormat('ru-RU').format(Math.round(v))} ₽`;
+const active=(stage:string)=>!['closed_won','closed_lost'].includes(stage);
 
-  const totalWonDeals = deals.filter(d => d.stage === 'closed_won');
-  const totalRevenue = totalWonDeals.reduce((sum, d) => sum + d.amount, 0);
-  const averageCheck = totalWonDeals.length > 0 ? Math.round(totalRevenue / totalWonDeals.length) : 0;
-  const conversionRate = deals.length > 0 ? Math.round((totalWonDeals.length / deals.length) * 100) : 0;
+export const AnalyticsView:React.FC=()=>{
+  const{clients,deals,payments}=useCrm();
+  const paidByDeal=useMemo(()=>{const m=new Map<string,number>();payments.filter(p=>p.direction==='inflow'&&p.status==='completed').forEach(p=>m.set(p.dealId,(m.get(p.dealId)||0)+p.amount));return m},[payments]);
+  const working=deals.filter(d=>active(d.stage));
+  const withPayment=deals.filter(d=>d.stage!=='closed_lost'&&(paidByDeal.get(d.id)||0)>0);
+  const received=withPayment.reduce((s,d)=>s+(paidByDeal.get(d.id)||0),0);
+  const actualCosts=withPayment.reduce((s,d)=>s+Math.max(0,d.primeCost||0),0);
+  const actualResult=received-actualCosts;
+  const won=deals.filter(d=>d.stage==='closed_won');
+  const lost=deals.filter(d=>d.stage==='closed_lost');
+  const closed=won.length+lost.length;
+  const conversion=closed?Math.round(won.length/closed*100):0;
+  const avgPaid=withPayment.length?received/withPayment.length:0;
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(val);
-  };
+  const sources=useMemo(()=>{
+    const map=new Map<string,{clients:number,deals:number,paid:number}>();
+    clients.forEach(c=>map.set(c.source,{clients:(map.get(c.source)?.clients||0)+1,deals:map.get(c.source)?.deals||0,paid:map.get(c.source)?.paid||0}));
+    deals.forEach(d=>{const source=clients.find(c=>c.id===d.clientId)?.source||'Не указан';const old=map.get(source)||{clients:0,deals:0,paid:0};map.set(source,{...old,deals:old.deals+1,paid:old.paid+(paidByDeal.get(d.id)||0)})});
+    return Array.from(map.entries()).map(([name,v])=>({name,...v})).sort((a,b)=>b.clients-a.clients);
+  },[clients,deals,paidByDeal]);
 
-  // Lost deal reasons
-  const lostReasonsData = [
-    { reason: 'Слишком высокая стоимость (дорого)', count: 4, pct: 45 },
-    { reason: 'Срок изготовления больше 25 дней', count: 2, pct: 25 },
-    { reason: 'Заморозка бюджета / перенос объекта', count: 2, pct: 20 },
-    { reason: 'Выбрали готовое стандартное решение', count: 1, pct: 10 },
-  ];
+  const stages=Object.entries({lead:'Новый запрос',contacted:'Связались',calculation:'Расчёт',proposal_sent:'КП / счёт',negotiation:'Согласование',prepayment:'Ожидает оплаты',production:'Производство',ready:'Готово',shipped:'Доставка',closed_won:'Завершено'}).map(([id,label])=>({id,label,count:deals.filter(d=>d.stage===id).length,sum:deals.filter(d=>d.stage===id).reduce((s,d)=>s+d.amount,0)}));
+  const maxStage=Math.max(1,...stages.map(s=>s.count));
 
-  return (
-    <div className={`flex-1 flex flex-col min-h-0 overflow-y-auto p-6 space-y-6 ${
-      isLight ? 'bg-slate-50/70 text-slate-900' : 'bg-slate-950 text-slate-100'
-    }`}>
-      {/* Top Header */}
-      <div>
-        <h1 className={`text-lg font-semibold tracking-tight flex items-center gap-2 ${
-          isLight ? 'text-slate-900' : 'text-white'
-        }`}>
-          <TrendingUp className="w-4 h-4 text-indigo-600" />
-          <span>Аналитика продаж, конверсии и эффективности</span>
-        </h1>
-        <p className="text-xs text-slate-500 font-normal mt-0.5">
-          Анализ воронок, средний чек, каналы привлечения клиентов и показатели команды
-        </p>
-      </div>
+  const lostReasons=useMemo(()=>{const map=new Map<string,number>();lost.forEach(d=>{const reason=d.lostReason?.trim()||'Причина не указана';map.set(reason,(map.get(reason)||0)+1)});return Array.from(map.entries()).map(([reason,count])=>({reason,count})).sort((a,b)=>b.count-a.count)},[lost]);
 
-      {/* KPI 4 Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className={`p-5 rounded-xl border shadow-2xs ${
-          isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="text-xs font-medium text-slate-500">
-            Закрытые продажи
-          </div>
-          <div className="text-2xl font-semibold font-mono text-emerald-600 tabular-nums tracking-tight mt-2">
-            {formatCurrency(totalRevenue)}
-          </div>
-          <div className="text-xs font-normal text-slate-500 mt-1">
-            {totalWonDeals.length} успешных договоров
-          </div>
-        </div>
+  const managerStats=useMemo(()=>{const map=new Map<string,{deals:number,paid:number,result:number,share:number}>();withPayment.forEach(d=>{const manager=d.assignedManager||'Светлана';const paid=paidByDeal.get(d.id)||0;const result=paid-Math.max(0,d.primeCost||0);const old=map.get(manager)||{deals:0,paid:0,result:0,share:0};const share=manager==='Светлана'?0:Math.max(0,result)*.5;map.set(manager,{deals:old.deals+1,paid:old.paid+paid,result:old.result+result,share:old.share+share})});return Array.from(map.entries()).map(([name,v])=>({name,...v}))},[withPayment,paidByDeal]);
 
-        <div className={`p-5 rounded-xl border shadow-2xs ${
-          isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="text-xs font-medium text-slate-500">
-            Средний чек сделки
-          </div>
-          <div className={`text-2xl font-semibold font-mono tabular-nums tracking-tight mt-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
-            {formatCurrency(averageCheck)}
-          </div>
-          <div className="text-xs font-medium text-emerald-600 mt-1">+24% к прошлому кварталу</div>
-        </div>
+  return <div className="min-h-[1000px] w-[1330px] bg-[#f7f5f2] px-[38px] py-[26px] text-[#1f1d1c]">
+    <div><div className="text-[10px] font-medium uppercase tracking-[.12em] text-[#8e867f]">Без заглушек</div><h1 className="mt-1 text-[30px] font-semibold tracking-[-.035em]">Аналитика</h1><p className="mt-1 text-[11px] text-[#7c756f]">Все показатели ниже рассчитаны только из текущих клиентов, сделок и фактических оплат CRM.</p></div>
 
-        <div className={`p-5 rounded-xl border shadow-2xs ${
-          isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="text-xs font-medium text-slate-500">
-            Конверсия воронки
-          </div>
-          <div className="text-2xl font-semibold font-mono text-indigo-600 tabular-nums tracking-tight mt-2">
-            {conversionRate}%
-          </div>
-          <div className="text-xs font-normal text-slate-500 mt-1">
-            Из лида в оплату и отгрузку
-          </div>
-        </div>
-
-        <div className={`p-5 rounded-xl border shadow-2xs ${
-          isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="text-xs font-medium text-slate-500">
-            Активная база клиентов
-          </div>
-          <div className={`text-2xl font-semibold font-mono tabular-nums tracking-tight mt-2 ${isLight ? 'text-slate-900' : 'text-white'}`}>
-            {clients.length}
-          </div>
-          <div className="text-xs font-medium text-amber-600 mt-1">6 ключевых VIP заказчиков</div>
-        </div>
-      </div>
-
-      {/* Funnel Stage Breakdown */}
-      <div className={`p-5 rounded-xl border shadow-2xs space-y-4 ${
-        isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-      }`}>
-        <h2 className={`text-xs font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-          Этапы воронки и конверсия продвижения
-        </h2>
-
-        <div className="space-y-3">
-          {DEAL_STAGES.filter(s => s.id !== 'closed_lost').map((stage) => {
-            const count = deals.filter(d => d.stage === stage.id).length;
-            const sum = deals.filter(d => d.stage === stage.id).reduce((s, d) => s + d.amount, 0);
-
-            return (
-              <div key={stage.id} className="flex items-center gap-4 text-xs font-normal">
-                <span className={`w-36 font-medium truncate ${isLight ? 'text-slate-800' : 'text-slate-200'}`}>{stage.title}</span>
-                <div className="flex-1 bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{
-                      width: `${Math.max(8, (count / deals.length) * 100)}%`,
-                      backgroundColor: stage.color,
-                    }}
-                  />
-                </div>
-                <span className="font-mono tabular-nums text-slate-500 w-16 text-right font-normal">{count} шт</span>
-                <span className={`font-mono tabular-nums font-medium w-32 text-right text-xs ${isLight ? 'text-slate-900' : 'text-white'}`}>
-                  {formatCurrency(sum)}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Customer Engagement & Profitability Clusters Heatmap */}
-      <CustomerEngagementHeatmap />
-
-      {/* Row: Manager Leaderboard & Lost Deal Reasons */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Manager Leaderboard */}
-        <div className={`p-5 rounded-xl border shadow-2xs space-y-4 ${
-          isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="flex items-center gap-2">
-            <Award className="w-4 h-4 text-amber-500" />
-            <h2 className={`text-xs font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              Эффективность менеджеров Satori
-            </h2>
-          </div>
-
-          <div className="space-y-2.5">
-            {managers.map((m, idx) => (
-              <div key={m.id} className={`p-3 rounded-lg border flex items-center justify-between ${
-                isLight ? 'bg-slate-50/70 border-slate-200/70' : 'bg-slate-850 border-slate-800'
-              }`}>
-                <div className="flex items-center gap-3">
-                  <span className="w-5 text-center font-mono tabular-nums text-xs text-slate-400">#{idx + 1}</span>
-                  <img src={m.avatar} alt={m.name} className="w-8 h-8 rounded-full object-cover border border-slate-200" />
-                  <div>
-                    <div className="font-medium text-xs text-slate-900">{m.name}</div>
-                    <div className="text-[11px] text-slate-500 font-normal">{m.role}</div>
-                  </div>
-                </div>
-
-                <div className="text-right font-mono tabular-nums">
-                  <div className="text-xs font-medium text-emerald-600">{formatCurrency(m.revenue)}</div>
-                  <div className="text-[11px] text-slate-400 font-normal">{m.dealsWon} сделок закрыто</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Reasons of Refusal / Lost */}
-        <div className={`p-5 rounded-xl border shadow-2xs space-y-4 ${
-          isLight ? 'bg-white border-slate-200/80' : 'bg-slate-900 border-slate-800'
-        }`}>
-          <div className="flex items-center gap-2">
-            <AlertOctagon className="w-4 h-4 text-rose-600" />
-            <h2 className={`text-xs font-semibold ${isLight ? 'text-slate-900' : 'text-white'}`}>
-              Причины отказов и срывов
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {lostReasonsData.map((item, idx) => (
-              <div key={idx} className="space-y-1.5">
-                <div className="flex justify-between text-xs">
-                  <span className={`font-normal ${isLight ? 'text-slate-700' : 'text-slate-300'}`}>{item.reason}</span>
-                  <span className="font-mono tabular-nums text-slate-500 font-normal">{item.count} сл. ({item.pct}%)</span>
-                </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-rose-500 rounded-full" style={{ width: `${item.pct}%` }} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <p className={`text-[11px] pt-3 border-t leading-relaxed font-normal ${
-            isLight ? 'border-slate-100 text-slate-500' : 'border-slate-800 text-slate-400'
-          }`}>
-            💡 Рекомендация CRM: 45% отказов вызваны ценой — предлагайте заказчикам альтернативные материалы (например, МДФ в шпоне дуба вместо массива или сталь в порошковой окраске вместо цельной латуни).
-          </p>
-        </div>
-
-      </div>
+    <div className="mt-5 grid grid-cols-4 gap-4">
+      {[[money(received),'Получено оплат',CircleDollarSign],[money(actualResult),'Фактический результат',BarChart3],[`${conversion}%`,'Конверсия закрытых',PieChart],[clients.length,'Клиентов в CRM',Users]].map(([value,label,Icon]:any)=><section key={label} className="rounded-[18px] border border-[#e6e0da] bg-white p-4"><div className="flex items-center justify-between text-[10px] text-[#786f69]"><span>{label}</span><Icon size={15}/></div><b className="mt-2 block text-[23px]">{value}</b></section>)}
     </div>
-  );
+
+    <div className="mt-4 grid grid-cols-[1fr_400px] gap-4">
+      <section className="rounded-[18px] border border-[#e6e0da] bg-white p-5">
+        <div className="flex items-center justify-between"><h2 className="text-[17px] font-semibold">Воронка</h2><span className="text-[9px] text-[#8e867f]">{working.length} активных · {money(working.reduce((s,d)=>s+d.amount,0))}</span></div>
+        <div className="mt-4 space-y-3">{stages.map(s=><div key={s.id} className="grid grid-cols-[150px_1fr_45px_120px] items-center gap-3 text-[9px]"><span className="truncate text-[#625c57]">{s.label}</span><span className="h-2 overflow-hidden rounded-full bg-[#f0ece8]"><i className="block h-full rounded-full bg-[#b8c9dc]" style={{width:`${s.count?Math.max(5,s.count/maxStage*100):0}%`}}/></span><b className="text-right">{s.count}</b><b className="text-right">{money(s.sum)}</b></div>)}</div>
+      </section>
+
+      <section className="rounded-[18px] border border-[#e6e0da] bg-white p-5"><h2 className="text-[17px] font-semibold">Фактические деньги</h2><div className="mt-4 space-y-3 text-[10px]"><div className="flex"><span className="text-[#817a74]">Сделок с оплатой</span><b className="ml-auto">{withPayment.length}</b></div><div className="flex"><span className="text-[#817a74]">Средний полученный платёж</span><b className="ml-auto">{money(avgPaid)}</b></div><div className="flex"><span className="text-[#817a74]">Получено</span><b className="ml-auto text-[#55705f]">{money(received)}</b></div><div className="flex"><span className="text-[#817a74]">Расходы по этим проектам</span><b className="ml-auto">{money(actualCosts)}</b></div><div className="flex border-t border-[#eee9e4] pt-3"><span className="text-[#817a74]">Результат</span><b className={`ml-auto ${actualResult>=0?'text-[#55705f]':'text-[#b86673]'}`}>{money(actualResult)}</b></div></div></section>
+    </div>
+
+    <div className="mt-4 grid grid-cols-2 gap-4">
+      <section className="rounded-[18px] border border-[#e6e0da] bg-white p-5"><h2 className="text-[17px] font-semibold">Источники клиентов</h2><p className="mt-1 text-[9px] text-[#8e867f]">Не выдуманные каналы — только поле «Источник» в карточках клиентов.</p><div className="mt-4 grid h-[36px] grid-cols-[1.7fr_70px_70px_120px] items-center rounded-[9px] bg-[#faf8f5] px-3 text-[8px] text-[#8e867f]"><span>Источник</span><span>Клиенты</span><span>Сделки</span><span>Получено</span></div>{sources.map((s,i)=><div key={s.name} className={`grid min-h-[42px] grid-cols-[1.7fr_70px_70px_120px] items-center px-3 text-[9px] ${i%2?'bg-[#fcfbf9]':''}`}><b className="truncate">{s.name}</b><span>{s.clients}</span><span>{s.deals}</span><b>{money(s.paid)}</b></div>)}{!sources.length&&<div className="py-14 text-center text-[10px] text-[#8e867f]">Нет данных</div>}</section>
+      <section className="rounded-[18px] border border-[#e6e0da] bg-white p-5"><h2 className="text-[17px] font-semibold">Ответственные и доля менеджера</h2><div className="mt-4 space-y-2">{managerStats.map(m=><div key={m.name} className="rounded-[12px] bg-[#fbfaf8] p-3"><div className="flex text-[10px]"><b>{m.name}</b><span className="ml-auto text-[#817a74]">{m.deals} сделок с оплатой</span></div><div className="mt-2 flex text-[9px] text-[#6f6862]"><span>получено {money(m.paid)}</span><span className="ml-auto">доля менеджера {money(m.share)}</span></div></div>)}{!managerStats.length&&<div className="py-14 text-center text-[10px] text-[#8e867f]">Пока нет оплаченных сделок</div>}</div></section>
+    </div>
+
+    <section className="mt-4 rounded-[18px] border border-[#e6e0da] bg-white p-5"><h2 className="text-[17px] font-semibold">Причины отказов</h2><p className="mt-1 text-[9px] text-[#8e867f]">Только реальные сделки из песочницы. Если причина не заполнена, CRM так и пишет.</p><div className="mt-4 flex flex-wrap gap-2">{lostReasons.map(r=><div key={r.reason} className="rounded-[12px] bg-[#faf2f3] px-4 py-3 text-[10px]"><b>{r.count}</b><span className="ml-2 text-[#765f64]">{r.reason}</span></div>)}{!lostReasons.length&&<span className="text-[10px] text-[#8e867f]">Отказов пока нет.</span>}</div></section>
+  </div>;
 };

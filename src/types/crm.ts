@@ -10,17 +10,17 @@ export type LeadSource =
 export type ClientStatus = 'Лид' | 'Потенциальный' | 'Активный' | 'VIP' | 'В архиве';
 
 export type DealStage = 
-  | 'lead'              // Новый лид
-  | 'contacted'         // Связались
-  | 'calculation'       // Расчёт
-  | 'proposal_sent'     // КП отправлено
-  | 'negotiation'       // Согласование
-  | 'prepayment'        // Предоплата
-  | 'production'        // Производство
-  | 'ready'             // Готово
-  | 'shipped'           // Отгружено
-  | 'closed_won'        // Закрыто успешно
-  | 'closed_lost';      // Срыв / Отказ
+  | 'lead'
+  | 'contacted'
+  | 'calculation'
+  | 'proposal_sent'
+  | 'negotiation'
+  | 'prepayment'
+  | 'production'
+  | 'ready'
+  | 'shipped'
+  | 'closed_won'
+  | 'closed_lost';
 
 export interface DealStageInfo {
   id: DealStage;
@@ -41,7 +41,7 @@ export interface Task {
   title: string;
   type: TaskType;
   priority: TaskPriority;
-  deadline: string; // ISO string or YYYY-MM-DD
+  deadline: string;
   completed: boolean;
   assignedTo: string;
   fromMessageText?: string;
@@ -88,7 +88,7 @@ export interface DealItem {
   title: string;
   quantity: number;
   unitPrice: number;
-  primeCost: number; // себестоимость
+  primeCost: number;
   material?: string;
 }
 
@@ -98,11 +98,13 @@ export interface Deal {
   clientName: string;
   title: string;
   amount: number;
-  primeCost: number; // общая себестоимость
-  margin: number; // amount - primeCost
+  primeCost: number;
+  margin: number;
   stage: DealStage;
-  probability: number; // 0-100%
+  probability: number;
   deadline: string;
+  paymentDate?: string;
+  productionStartDate?: string;
   assignedManager: string;
   items: DealItem[];
   lostReason?: string;
@@ -111,14 +113,14 @@ export interface Deal {
 }
 
 export type ProductionStatus = 
-  | 'queued'           // В очереди
-  | 'materials'        // Закупка материалов
-  | 'cutting'          // Раскрой / Заготовка
-  | 'assembly'         // Сборка / Изготовление
-  | 'finishing'        // Отделка / Покраска
-  | 'quality_control'  // Контроль ОТК
-  | 'packaged'         // Упаковано
-  | 'shipped';         // Отгружено
+  | 'queued'
+  | 'materials'
+  | 'cutting'
+  | 'assembly'
+  | 'finishing'
+  | 'quality_control'
+  | 'packaged'
+  | 'shipped';
 
 export interface ProductionOrder {
   id: string;
@@ -132,7 +134,7 @@ export interface ProductionOrder {
   salePrice: number;
   status: ProductionStatus;
   readyDeadline: string;
-  contractorName: string; // Подрядчик / Цех
+  contractorName: string;
   packagingStatus: 'Не упаковано' | 'Упаковано в стретч/ящик' | 'Готово к транспортировке';
   deliveryService: 'СДЭК' | 'Деловые Линии' | 'Собственный курьер' | 'Самовывоз';
   trackingNumber?: string;
@@ -141,7 +143,6 @@ export interface ProductionOrder {
 
 export type DocumentType = 'proposal' | 'invoice' | 'contract' | 'act';
 export type DocumentStatus = 'draft' | 'sent' | 'viewed' | 'approved' | 'paid';
-
 export type ProposalTemplateId = 'standard' | 'premium' | 'manufacturing' | 'offer';
 
 export interface ProposalTemplateMeta {
@@ -170,15 +171,15 @@ export interface RecurringScheduleExecutionLog {
 
 export interface ContractReminderSettings {
   enabled: boolean;
-  remindDaysBeforeDue: number; // e.g. 2 or 3 days before due date
-  sendOnDueDate: boolean; // e.g. send on day 0
+  remindDaysBeforeDue: number;
+  sendOnDueDate: boolean;
   enableOverdueReminders: boolean;
-  overdueGraceDays: number; // e.g. 1 day after due date
-  overdueRepeatIntervalDays: number; // e.g. every 3 days
-  maxOverdueReminders: number; // e.g. 3
-  channels: CommunicationChannel[]; // ['email', 'whatsapp', 'telegram']
+  overdueGraceDays: number;
+  overdueRepeatIntervalDays: number;
+  maxOverdueReminders: number;
+  channels: CommunicationChannel[];
   autoCreateUrgentTask: boolean;
-  penaltyPercentPerDay: number; // e.g. 0.1% пеня по договору
+  penaltyPercentPerDay: number;
   approachingTemplate?: string;
   overdueTemplate?: string;
 }
@@ -191,7 +192,7 @@ export interface InvoiceReminderTriggerLog {
   clientName: string;
   contractNumber?: string;
   triggerType: 'approaching_due' | 'due_today' | 'overdue';
-  daysOffset: number; // -2 = 2 days left, 0 = due today, +3 = 3 days overdue
+  daysOffset: number;
   channel: CommunicationChannel;
   recipientContact: string;
   triggeredAt: string;
@@ -206,7 +207,7 @@ export interface RecurringInvoiceSchedule {
   contractNumber: string;
   contractTitle: string;
   frequency: RecurringFrequency;
-  billingDay: number; // Day of month (1-31) or day of period
+  billingDay: number;
   startDate: string;
   endDate?: string;
   nextRunDate: string;
@@ -352,7 +353,7 @@ export interface Contractor {
   contactPerson: string;
   phone: string;
   email: string;
-  rating: number; // 1-5
+  rating: number;
   activeOrdersCount: number;
   averageLeadDays: number;
   pricingTier: 'Эконом' | 'Оптимум' | 'Премиум';
