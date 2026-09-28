@@ -287,14 +287,14 @@ export const LiveDealsView: React.FC = () => {
     </div>
 
     <div className="mt-[16px] grid grid-cols-[872px_355px] gap-[18px]">
-      <Card className="min-h-[694px] overflow-hidden p-[20px]">
+      <Card className="min-h-[694px] overflow-visible p-[20px]">
         <div className="flex items-center justify-between"><h2 className="text-[18px] font-semibold">Все сделки</h2><span className="text-[9px] text-[#8a837d]">Только данные CRM</span></div>
         <div className="mt-[14px] flex items-center gap-2">
           {(['all','active','closed'] as const).map(id => <button key={id} onClick={() => setStageFilter(id)} className={`h-[28px] rounded-[14px] px-3 text-[10px] font-medium ${stageFilter === id ? 'bg-[#ece7e2] text-[#3d3835]' : 'bg-[#f5f3f0] text-[#68615c]'}`}>{id === 'all' ? `Все ${deals.length}` : id === 'active' ? `Активные ${active.length}` : `Закрытые ${deals.length - active.length}`}</button>)}
         </div>
         <div className="mt-[18px] grid h-[42px] grid-cols-[168px_202px_150px_110px_132px_70px] items-center rounded-[10px] bg-[#faf9f7] px-3 text-[9px] font-medium text-[#938b84]"><span>Клиент</span><span>Сделка</span><span>Этап</span><span>Оплачено</span><span>Следующий шаг</span><span>Детали</span></div>
         <div>
-          {shown.slice(0, 8).map((d, index) => {
+          {shown.map((d, index) => {
             const next = tasks.filter(t => !t.completed && (t.dealId === d.id || (!t.dealId && t.clientId === d.clientId))).sort((a,b)=>(dateMs(a.deadline)||Infinity)-(dateMs(b.deadline)||Infinity))[0];
             return <div key={d.id} className={`grid min-h-[66px] grid-cols-[168px_202px_150px_110px_132px_70px] items-center px-3 text-[10px] ${index % 2 ? 'rounded-[10px] bg-[#fcfbf9]' : ''}`}>
               <button onClick={() => openClientCard(d.clientId)} className="min-w-0 text-left"><b className="block truncate text-[11px]">{d.clientName}</b><span className="mt-1 block text-[8px] text-[#958d86]">{relativeDate(d.updatedAt)}</span></button>
@@ -307,7 +307,7 @@ export const LiveDealsView: React.FC = () => {
           })}
           {!shown.length && <div className="grid h-40 place-items-center text-[11px] text-[#918a84]">Сделок по этому фильтру нет</div>}
         </div>
-        <div className="mt-4 text-[9px] text-[#8b847e]">Показано {Math.min(8, shown.length)} из {shown.length}</div>
+        <div className="mt-4 text-[9px] text-[#8b847e]">Показано {shown.length} из {shown.length}</div>
       </Card>
 
       <div className="space-y-[18px]">
