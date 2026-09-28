@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Plug } from 'lucide-react';
 import { CrmProvider, useCrm } from './context/CrmContext';
 import { Sidebar } from './components/common/Sidebar';
@@ -11,7 +11,6 @@ import { Sidebar } from './components/common/Sidebar';
 import {
   FigmaDocumentsView,
   FigmaEconomicsView,
-  FigmaFunnelView,
   FigmaProjectCalcView,
 } from './components/figma/FigmaViews';
 import { LiveDashboardView } from './components/figma/LiveDashboardView';
@@ -21,9 +20,10 @@ import { FigmaCalendarView } from './components/figma/FigmaCalendarView';
 import { MobileCrmView } from './components/figma/FigmaMobileViews';
 import { MobileLiveEva, MobileLiveInbox } from './components/figma/MobileLiveChannels';
 import { LiveDealsView } from './components/deals/LiveDealsView';
+import { LivePipelineView } from './components/deals/LivePipelineView';
 import { CallListView } from './components/calls/CallListView';
 
-import { SettingsView } from './components/settings/SettingsView';
+import { SettingsHub } from './components/settings/SettingsHub';
 import { ClientsListView } from './components/clients/ClientsListView';
 import { LiveClientView } from './components/clients/LiveClientView';
 import { ProductionOrdersView } from './components/production/ProductionOrdersView';
@@ -54,28 +54,43 @@ const GlobalOverlays: React.FC = () => <>
 const MainContent: React.FC = () => {
   const { currentTab } = useCrm();
   const tab = String(currentTab);
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const [zoom, setZoom] = useState(1);
+
+  useEffect(() => {
+    const node = viewportRef.current;
+    if (!node) return;
+    const update = () => setZoom(Math.min(1, Math.max(0.76, node.clientWidth / 1330)));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <main className="relative flex min-w-0 flex-1 flex-col overflow-hidden bg-[#f7f5f2]">
-      <div className="relative min-h-0 flex-1 overflow-auto">
-        {tab === 'dashboard' && <LiveDashboardView />}
-        {tab === 'call_list' && <CallListView />}
-        {tab === 'deals' && <LiveDealsView />}
-        {tab === 'pipeline' && <FigmaFunnelView />}
-        {tab === 'inbox' && <FigmaInboxView />}
-        {tab === 'finance' && <FigmaEconomicsView />}
-        {tab === 'project_calc' && <FigmaProjectCalcView />}
-        {tab === 'documents' && <FigmaDocumentsView />}
-        {tab === 'ai_manager' && <FigmaEvaView />}
-        {tab === 'calendar' && <FigmaCalendarView />}
-        {tab === 'settings' && <SettingsView />}
-        {tab === 'clients' && <ClientsListView />}
-        {tab === 'client_cockpit' && <LiveClientView />}
-        {tab === 'production' && <ProductionOrdersView />}
-        {tab === 'tasks' && <TasksView />}
-        {tab === 'catalog' && <CatalogView />}
-        {tab === 'contractors' && <ContractorsView />}
-        {tab === 'analytics' && <AnalyticsView />}
-        {tab === 'integrations' && <IntegrationsView />}
+      <div ref={viewportRef} className="relative min-h-0 flex-1 overflow-auto">
+        <div style={{ zoom }} className="min-h-full">
+          {tab === 'dashboard' && <LiveDashboardView />}
+          {tab === 'call_list' && <CallListView />}
+          {tab === 'deals' && <LiveDealsView />}
+          {tab === 'pipeline' && <LivePipelineView />}
+          {tab === 'inbox' && <FigmaInboxView />}
+          {tab === 'finance' && <FigmaEconomicsView />}
+          {tab === 'project_calc' && <FigmaProjectCalcView />}
+          {tab === 'documents' && <FigmaDocumentsView />}
+          {tab === 'ai_manager' && <FigmaEvaView />}
+          {tab === 'calendar' && <FigmaCalendarView />}
+          {tab === 'settings' && <SettingsHub />}
+          {tab === 'clients' && <ClientsListView />}
+          {tab === 'client_cockpit' && <LiveClientView />}
+          {tab === 'production' && <ProductionOrdersView />}
+          {tab === 'tasks' && <TasksView />}
+          {tab === 'catalog' && <CatalogView />}
+          {tab === 'contractors' && <ContractorsView />}
+          {tab === 'analytics' && <AnalyticsView />}
+          {tab === 'integrations' && <IntegrationsView />}
+        </div>
       </div>
       <GlobalOverlays />
     </main>
