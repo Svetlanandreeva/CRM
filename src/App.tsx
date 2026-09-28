@@ -10,11 +10,11 @@ import { Sidebar } from './components/common/Sidebar';
 
 import {
   FigmaDocumentsView,
-  FigmaEconomicsView,
   FigmaProjectCalcView,
 } from './components/figma/FigmaViews';
 import { LiveDashboardView } from './components/figma/LiveDashboardView';
-import { FigmaInboxView } from './components/figma/FigmaInboxView';
+import { LiveInboxView } from './components/inbox/LiveInboxView';
+import { LiveEconomicsView } from './components/finance/LiveEconomicsView';
 import { FigmaEvaView } from './components/figma/FigmaEvaView';
 import { FigmaCalendarView } from './components/figma/FigmaCalendarView';
 import { MobileCrmView } from './components/figma/FigmaMobileViews';
@@ -25,7 +25,7 @@ import { CallListView } from './components/calls/CallListView';
 
 import { SettingsHub } from './components/settings/SettingsHub';
 import { ClientsListView } from './components/clients/ClientsListView';
-import { LiveClientView } from './components/clients/LiveClientView';
+import { SatoriClientView } from './components/clients/SatoriClientView';
 import { ProductionOrdersView } from './components/production/ProductionOrdersView';
 import { TasksView } from './components/tasks/TasksView';
 import { CatalogView } from './components/catalog/CatalogView';
@@ -75,15 +75,15 @@ const MainContent: React.FC = () => {
           {tab === 'call_list' && <CallListView />}
           {tab === 'deals' && <LiveDealsView />}
           {tab === 'pipeline' && <LivePipelineView />}
-          {tab === 'inbox' && <FigmaInboxView />}
-          {tab === 'finance' && <FigmaEconomicsView />}
+          {tab === 'inbox' && <LiveInboxView />}
+          {tab === 'finance' && <LiveEconomicsView />}
           {tab === 'project_calc' && <FigmaProjectCalcView />}
           {tab === 'documents' && <FigmaDocumentsView />}
           {tab === 'ai_manager' && <FigmaEvaView />}
           {tab === 'calendar' && <FigmaCalendarView />}
           {tab === 'settings' && <SettingsHub />}
           {tab === 'clients' && <ClientsListView />}
-          {tab === 'client_cockpit' && <LiveClientView />}
+          {tab === 'client_cockpit' && <SatoriClientView />}
           {tab === 'production' && <ProductionOrdersView />}
           {tab === 'tasks' && <TasksView />}
           {tab === 'catalog' && <CatalogView />}
