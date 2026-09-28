@@ -44,11 +44,13 @@ export type NavigationTab =
   | 'ai_manager'
   | 'calendar'
   | 'integrations'
-  | 'settings';
+  | 'settings'
+  | 'call_list';
 
 export type ThemeMode = 'light' | 'dark';
-
 type LiveStage = { id: string; name: string; isWon?: boolean; isLost?: boolean };
+type PaymentOverride = Record<string, { amount: number; date: string }>;
+type AssignmentOverride = Record<string, string>;
 
 interface CrmContextType {
   currentTab: NavigationTab;
@@ -84,6 +86,7 @@ interface CrmContextType {
   addDeal: (deal: Omit<Deal, 'id' | 'createdAt' | 'updatedAt' | 'margin'>) => Deal;
   updateDealStage: (id: string, stage: DealStage) => void;
   updateDeal: (id: string, updates: Partial<Deal>) => void;
+  setDealPayment: (dealId: string, amount: number, date: string) => void;
   addTask: (task: Omit<Task, 'id' | 'createdAt' | 'completed'>) => Task;
   toggleTask: (id: string) => void;
   deleteTask: (id: string) => void;
@@ -149,6 +152,7 @@ const emptyCompanySettings: CompanySettings = {
 const emptyScheduler: RecurringSchedulerSettings = { enabled: false, checkIntervalMinutes: 60, defaultBillingDay: 1, defaultDueDays: 5, defaultTemplateId: 'standard', autoSendInvoices: false, notifyManagerOnGeneration: false };
 const emptyReminder: ContractReminderSettings = { enabled: false, remindDaysBeforeDue: 3, sendOnDueDate: false, enableOverdueReminders: false, overdueGraceDays: 1, overdueRepeatIntervalDays: 3, maxOverdueReminders: 3, channels: ['email'], autoCreateUrgentTask: false, penaltyPercentPerDay: 0 };
 const owner: Manager = { id: 'owner', name: 'Светлана', role: 'Владелец', avatar: '', email: '', dealsWon: 0, revenue: 0 };
+const defaultManager: Manager = { id: 'manager', name: 'Менеджер', role: 'Менеджер проектов', avatar: '', email: '', dealsWon: 0, revenue: 0 };
 
 const CrmContext = createContext<CrmContextType | undefined>(undefined);
 
@@ -168,16 +172,19 @@ function mapSource(value: unknown): Client['source'] {
   return 'Сайт / SEO';
 }
 function mapStageName(name: unknown, isWon = false, isLost = false): DealStage {
-  if (isLost) return 'closed_lost'; if (isWon) return 'closed_won';
   const n = String(name || '').toLowerCase().replace(/ё/g, 'е');
+  if (n.includes('отказ') || n.includes('потер') || n.includes('сорван')) return 'closed_lost';
   if (n.includes('достав') || n.includes('отгруж')) return 'shipped';
   if (n.includes('готов')) return 'ready';
   if (n.includes('производ')) return 'production';
-  if (n.includes('предоплат') || n.includes('ожида') && n.includes('оплат') || n === 'оплачено') return 'prepayment';
-  if (n.includes('соглас')) return 'negotiation';
-  if (n.includes('кп') || n.includes('предлож')) return 'proposal_sent';
+  if (n.includes('предоплат') || (n.includes('ожида') && n.includes('оплат')) || n === 'оплачено') return 'prepayment';
+  if (n.includes('соглас') || n.includes('уточнен') || n.includes('детал')) return 'negotiation';
+  if (n.includes('кп') || n.includes('предлож') || n.includes('счет') || n.includes('счёт')) return 'proposal_sent';
   if (n.includes('расчет') || n.includes('расчёт')) return 'calculation';
   if (n.includes('контакт') || n.includes('связ')) return 'contacted';
+  if (n.includes('закрыт') || n.includes('завершен') || n.includes('завершён')) return 'closed_won';
+  if (isLost) return 'closed_lost';
+  if (isWon) return 'closed_won';
   return 'lead';
 }
 function backendPriority(p: Task['priority']) { return p === 'medium' ? 'normal' : p; }
@@ -197,7 +204,6 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [theme, setTheme] = useState<ThemeMode>(() => (localStorage.getItem('satori_crm_theme') === 'dark' ? 'dark' : 'light'));
   const [currentManager, setCurrentManager] = useState<Manager>(owner);
-  const managers = useMemo(() => [currentManager], [currentManager]);
 
   const [clients, setClients] = useState<Client[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
@@ -217,6 +223,15 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [contractReminderSettings, setContractReminderSettings] = useState<ContractReminderSettings>(() => safeJson('satori_crm_contract_reminders', emptyReminder));
   const [invoiceReminderLogs, setInvoiceReminderLogs] = useState<InvoiceReminderTriggerLog[]>(() => safeJson('satori_crm_invoice_reminder_logs_live', []));
   const [liveStages, setLiveStages] = useState<LiveStage[]>([]);
+  const [paymentOverrides, setPaymentOverrides] = useState<PaymentOverride>(() => safeJson('satori_crm_payment_overrides', {}));
+  const [assignmentOverrides, setAssignmentOverrides] = useState<AssignmentOverride>(() => safeJson('satori_crm_assignment_overrides', {}));
+
+  const managers = useMemo(() => {
+    const names = new Set<string>([currentManager.name, defaultManager.name]);
+    clients.forEach(c => c.assignedManager && names.add(c.assignedManager));
+    deals.forEach(d => d.assignedManager && names.add(d.assignedManager));
+    return Array.from(names).map((name, index) => name === currentManager.name ? currentManager : name === defaultManager.name ? defaultManager : ({ ...defaultManager, id: `manager_${index}`, name }));
+  }, [currentManager, clients, deals]);
 
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -236,6 +251,8 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem('satori_crm_recurring_settings', JSON.stringify(schedulerSettings)); }, [schedulerSettings]);
   useEffect(() => { localStorage.setItem('satori_crm_contract_reminders', JSON.stringify(contractReminderSettings)); }, [contractReminderSettings]);
   useEffect(() => { localStorage.setItem('satori_crm_invoice_reminder_logs_live', JSON.stringify(invoiceReminderLogs)); }, [invoiceReminderLogs]);
+  useEffect(() => { localStorage.setItem('satori_crm_payment_overrides', JSON.stringify(paymentOverrides)); }, [paymentOverrides]);
+  useEffect(() => { localStorage.setItem('satori_crm_assignment_overrides', JSON.stringify(assignmentOverrides)); }, [assignmentOverrides]);
 
   useEffect(() => {
     if (localStorage.getItem('satori_live_backend_v1') === '1') return;
@@ -253,28 +270,64 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const economicsRows: any[] = economicsResult.status === 'fulfilled' && Array.isArray(economicsResult.value?.deals) ? economicsResult.value.deals : [];
     const stageRows: any[] = pipelineResult.status === 'fulfilled' && Array.isArray(pipelineResult.value) ? pipelineResult.value : [];
     if (stageRows.length) setLiveStages(stageRows.map(s => ({ id: String(s.id), name: String(s.name || ''), isWon: Boolean(s.isWon), isLost: Boolean(s.isLost) })));
-    const economicsByDeal = new Map(economicsRows.map(row => [String(row.dealId), row]));
+
+    const economicsByDeal = new Map<string, any>();
+    economicsRows.forEach(row => economicsByDeal.set(String(row.dealId), row));
     const nextDeals: Deal[] = dealRows.map(row => {
-      const econ = economicsByDeal.get(String(row.id));
+      const id = String(row.id);
+      const econ = economicsByDeal.get(id);
       const amount = rub(row.value);
       const primeCost = rub(econ?.totalCost || 0);
-      return { id: String(row.id), clientId: String(row.contactId || ''), clientName: String(row.contactName || 'Без имени'), title: String(row.title || 'Без названия'), amount, primeCost, margin: Math.max(0, amount - primeCost), stage: mapStageName(row.stageName, Boolean(row.stageIsWon), Boolean(row.stageIsLost)), probability: Number(row.probability || 0), deadline: row.expectedClose ? String(row.expectedClose).slice(0,10) : '', assignedManager: String(row.ownerName || 'Светлана'), items: [], lostReason: row.lossReason ? String(row.lossReason) : undefined, createdAt: iso(row.createdAt), updatedAt: iso(row.updatedAt) };
+      const stage = mapStageName(row.stageName, Boolean(row.stageIsWon), Boolean(row.stageIsLost));
+      const paymentOverride = paymentOverrides[id];
+      const paymentDate = paymentOverride?.date || (econ?.paymentDate ? String(econ.paymentDate).slice(0, 10) : undefined);
+      const assignedManager = assignmentOverrides[`deal:${id}`] || assignmentOverrides[`client:${String(row.contactId || '')}`] || String(row.ownerName || 'Светлана');
+      return {
+        id,
+        clientId: String(row.contactId || ''),
+        clientName: String(row.contactName || 'Без имени'),
+        title: String(row.title || 'Без названия'),
+        amount,
+        primeCost,
+        margin: Math.max(0, amount - primeCost),
+        stage,
+        probability: Number(row.probability || 0),
+        deadline: row.expectedClose ? String(row.expectedClose).slice(0,10) : '',
+        paymentDate,
+        productionStartDate: ['production','ready','shipped'].includes(stage) ? paymentDate : undefined,
+        assignedManager,
+        items: [],
+        lostReason: row.lossReason ? String(row.lossReason) : undefined,
+        createdAt: iso(row.createdAt),
+        updatedAt: iso(row.updatedAt),
+      };
     });
-    const nextClients: Client[] = contactRows.map(row => ({
-      id: String(row.id), name: String(row.name || 'Без имени'), company: row.company ? String(row.company) : undefined, role: undefined, phone: String(row.phone || ''), email: String(row.email || ''), telegram: undefined, whatsapp: undefined,
-      status: row.stageIsLost ? 'В архиве' : row.activeDealId ? 'Активный' : String(row.qualification || '') === 'qualified' ? 'Потенциальный' : 'Лид', source: mapSource(row.source), assignedManager: String(row.ownerName || 'Светлана'), avatar: undefined, notes: String(row.notes || ''), tags: [], totalLTV: rub(row.activeDealValue || 0), currentDebt: 0, lastContactAt: iso(row.updatedAt || row.createdAt), createdAt: iso(row.createdAt),
-    }));
+    const nextClients: Client[] = contactRows.map(row => {
+      const id = String(row.id);
+      return {
+        id, name: String(row.name || 'Без имени'), company: row.company ? String(row.company) : undefined, role: undefined,
+        phone: String(row.phone || ''), email: String(row.email || ''), telegram: undefined, whatsapp: undefined,
+        status: row.stageIsLost ? 'В архиве' : row.activeDealId ? 'Активный' : String(row.qualification || '') === 'qualified' ? 'Потенциальный' : 'Лид',
+        source: mapSource(row.source), assignedManager: assignmentOverrides[`client:${id}`] || String(row.ownerName || 'Светлана'), avatar: undefined,
+        notes: String(row.notes || ''), tags: [], totalLTV: rub(row.activeDealValue || 0), currentDebt: 0,
+        lastContactAt: iso(row.updatedAt || row.createdAt), createdAt: iso(row.createdAt),
+      };
+    });
     const nextTasks: Task[] = taskRows.map(row => ({ id: String(row.id), clientId: row.contactId ? String(row.contactId) : undefined, clientName: row.contactName ? String(row.contactName) : undefined, dealId: row.dealId ? String(row.dealId) : undefined, dealTitle: row.dealTitle ? String(row.dealTitle) : undefined, title: String(row.description || 'Задача'), type: taskType(row.type), priority: String(row.priority) === 'normal' ? 'medium' : (['low','medium','high','urgent'].includes(String(row.priority)) ? String(row.priority) as Task['priority'] : 'medium'), deadline: iso(row.scheduledAt || row.createdAt), completed: Boolean(row.completedAt), assignedTo: String(row.ownerName || 'Светлана'), createdAt: iso(row.createdAt) }));
     const dealById = new Map(nextDeals.map(d => [d.id, d]));
-    const nextPayments: PaymentRecord[] = economicsRows.filter(row => Number(row.receivedAmount || 0) > 0).map(row => {
-      const deal = dealById.get(String(row.dealId));
-      return { id: `received_${row.dealId}`, clientId: String(row.contactId || deal?.clientId || ''), clientName: String(row.contactName || deal?.clientName || 'Клиент'), dealId: String(row.dealId), dealTitle: String(row.dealTitle || deal?.title || 'Сделка'), amount: rub(row.receivedAmount), type: 'prepayment', direction: 'inflow', date: iso(row.paymentDate || row.updatedAt), method: 'Банковский счет (Безнал)', status: 'completed' };
+    const nextPayments: PaymentRecord[] = Array.from(economicsByDeal.values()).flatMap(row => {
+      const dealId = String(row.dealId);
+      const override = paymentOverrides[dealId];
+      const received = override ? override.amount : rub(row.receivedAmount);
+      if (received <= 0) return [];
+      const deal = dealById.get(dealId);
+      return [{ id: `received_${dealId}`, clientId: String(row.contactId || deal?.clientId || ''), clientName: String(row.contactName || deal?.clientName || 'Клиент'), dealId, dealTitle: String(row.dealTitle || deal?.title || 'Сделка'), amount: received, type: 'prepayment' as const, direction: 'inflow' as const, date: iso(override?.date || row.paymentDate || row.updatedAt), method: 'Банковский счет (Безнал)' as const, status: 'completed' as const }];
     });
     setDeals(nextDeals); setClients(nextClients); setTasks(nextTasks); setPayments(nextPayments);
     if (!selectedClientId && nextClients[0]) setSelectedClientId(nextClients[0].id);
     const revenue = nextPayments.reduce((s,p)=>s+p.amount,0); const won = nextDeals.filter(d=>d.stage==='closed_won').length;
     setCurrentManager(m => ({ ...m, dealsWon: won, revenue }));
-  }, [selectedClientId]);
+  }, [selectedClientId, paymentOverrides, assignmentOverrides]);
 
   useEffect(() => { refreshLiveData().catch(console.error); const timer = window.setInterval(() => refreshLiveData().catch(console.error), 60000); return () => window.clearInterval(timer); }, [refreshLiveData]);
 
@@ -288,18 +341,56 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addClient = (client: Omit<Client,'id'|'createdAt'|'lastContactAt'|'totalLTV'|'currentDebt'>) => {
     const now = new Date().toISOString(); const optimistic: Client = { ...client, id: `pending_${Date.now()}`, createdAt: now, lastContactAt: now, totalLTV: 0, currentDebt: 0 };
     setClients(v => [optimistic, ...v]);
-    jsonFetch('/api/contacts', { method:'POST', body: JSON.stringify({ name: client.name, phone: client.phone, email: client.email, company: client.company || null, source: client.source, notes: client.notes || '', qualification: client.status === 'Потенциальный' || client.status === 'Активный' || client.status === 'VIP' ? 'qualified' : 'new' }) }).then(refreshLiveData).catch(console.error);
+    jsonFetch('/api/contacts', { method:'POST', body: JSON.stringify({ name: client.name, phone: client.phone, email: client.email, company: client.company || null, source: client.source, notes: client.notes || '', qualification: client.status === 'Потенциальный' || client.status === 'Активный' || client.status === 'VIP' ? 'qualified' : 'new', ownerName: client.assignedManager }) }).then(refreshLiveData).catch(console.error);
     return optimistic;
   };
-  const updateClient = (id: string, updates: Partial<Client>) => { setClients(v => v.map(c => c.id===id?{...c,...updates}:c)); jsonFetch(`/api/contacts/${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify({ name: updates.name, phone: updates.phone, email: updates.email, company: updates.company, notes: updates.notes }) }).then(refreshLiveData).catch(console.error); };
+  const updateClient = (id: string, updates: Partial<Client>) => {
+    setClients(v => v.map(c => c.id===id?{...c,...updates}:c));
+    if (updates.assignedManager !== undefined) setAssignmentOverrides(v => ({ ...v, [`client:${id}`]: updates.assignedManager! }));
+    const body: Record<string, unknown> = {};
+    if (updates.name !== undefined) body.name = updates.name;
+    if (updates.phone !== undefined) body.phone = updates.phone;
+    if (updates.email !== undefined) body.email = updates.email;
+    if (updates.company !== undefined) body.company = updates.company;
+    if (updates.notes !== undefined) body.notes = updates.notes;
+    if (updates.assignedManager !== undefined) body.ownerName = updates.assignedManager;
+    jsonFetch(`/api/contacts/${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify(body) }).then(refreshLiveData).catch(console.error);
+  };
   const deleteClient = (id: string) => { jsonFetch(`/api/contacts/${encodeURIComponent(id)}`, { method:'PUT', body: JSON.stringify({ qualification:'ignore' }) }).then(refreshLiveData).catch(console.error); };
   const bulkDeleteClients = (ids: string[]) => ids.forEach(deleteClient);
   const bulkUpdateClientsStatus = (ids: string[], status: ClientStatus) => { setClients(v => v.map(c => ids.includes(c.id)?{...c,status}:c)); const qualification = status==='В архиве'?'ignore':status==='Лид'?'new':'qualified'; ids.forEach(id => jsonFetch(`/api/contacts/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify({ qualification }) }).catch(console.error)); };
-  const bulkReassignClients = (ids: string[], manager: string) => setClients(v => v.map(c => ids.includes(c.id)?{...c,assignedManager:manager}:c));
+  const bulkReassignClients = (ids: string[], manager: string) => {
+    setClients(v => v.map(c => ids.includes(c.id)?{...c,assignedManager:manager}:c));
+    setAssignmentOverrides(v => { const next={...v}; ids.forEach(id=>next[`client:${id}`]=manager); return next; });
+    Promise.allSettled(ids.map(id => jsonFetch(`/api/contacts/${encodeURIComponent(id)}`, { method:'PUT', body:JSON.stringify({ ownerName: manager }) }))).then(()=>refreshLiveData()).catch(console.error);
+  };
 
-  const addDeal = (deal: Omit<Deal,'id'|'createdAt'|'updatedAt'|'margin'>) => { const now=new Date().toISOString(); const optimistic:Deal={...deal,id:`pending_${Date.now()}`,margin:deal.amount-deal.primeCost,createdAt:now,updatedAt:now}; setDeals(v=>[optimistic,...v]); const target=liveStages.find(s=>mapStageName(s.name,s.isWon,s.isLost)===deal.stage); jsonFetch('/api/deals',{method:'POST',body:JSON.stringify({title:deal.title,value:Math.round(deal.amount*100),contactId:deal.clientId,stageId:target?.id,expectedClose:deal.deadline||null,probability:deal.probability})}).then(refreshLiveData).catch(console.error); return optimistic; };
-  const updateDeal = (id: string, updates: Partial<Deal>) => { setDeals(v=>v.map(d=>d.id===id?{...d,...updates,margin:(updates.amount??d.amount)-(updates.primeCost??d.primeCost),updatedAt:new Date().toISOString()}:d)); const body:any={}; if(updates.title!==undefined)body.title=updates.title;if(updates.amount!==undefined)body.value=Math.round(updates.amount*100);if(updates.deadline!==undefined)body.expectedClose=updates.deadline||null;if(updates.probability!==undefined)body.probability=updates.probability; jsonFetch(`/api/deals/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(body)}).then(refreshLiveData).catch(console.error); };
-  const updateDealStage = (id: string, stage: DealStage) => { const target=liveStages.find(s=>mapStageName(s.name,Boolean(s.isWon),Boolean(s.isLost))===stage); if(!target||target.isLost) return; setDeals(v=>v.map(d=>d.id===id?{...d,stage,updatedAt:new Date().toISOString()}:d)); jsonFetch('/api/pipeline',{method:'PUT',body:JSON.stringify({dealId:id,stageId:target.id})}).then(refreshLiveData).catch(console.error); };
+  const addDeal = (deal: Omit<Deal,'id'|'createdAt'|'updatedAt'|'margin'>) => { const now=new Date().toISOString(); const optimistic:Deal={...deal,id:`pending_${Date.now()}`,margin:deal.amount-deal.primeCost,createdAt:now,updatedAt:now}; setDeals(v=>[optimistic,...v]); const target=liveStages.find(s=>mapStageName(s.name,s.isWon,s.isLost)===deal.stage); jsonFetch('/api/deals',{method:'POST',body:JSON.stringify({title:deal.title,value:Math.round(deal.amount*100),contactId:deal.clientId,stageId:target?.id,expectedClose:deal.deadline||null,probability:deal.probability,ownerName:deal.assignedManager})}).then(refreshLiveData).catch(console.error); return optimistic; };
+  const updateDeal = (id: string, updates: Partial<Deal>) => {
+    setDeals(v=>v.map(d=>d.id===id?{...d,...updates,margin:(updates.amount??d.amount)-(updates.primeCost??d.primeCost),updatedAt:new Date().toISOString()}:d));
+    if (updates.assignedManager !== undefined) setAssignmentOverrides(v => ({ ...v, [`deal:${id}`]: updates.assignedManager! }));
+    const body:any={};
+    if(updates.title!==undefined)body.title=updates.title;
+    if(updates.amount!==undefined)body.value=Math.round(updates.amount*100);
+    if(updates.deadline!==undefined)body.expectedClose=updates.deadline||null;
+    if(updates.probability!==undefined)body.probability=updates.probability;
+    if(updates.assignedManager!==undefined)body.ownerName=updates.assignedManager;
+    jsonFetch(`/api/deals/${encodeURIComponent(id)}`,{method:'PUT',body:JSON.stringify(body)}).then(refreshLiveData).catch(console.error);
+  };
+  const updateDealStage = (id: string, stage: DealStage) => { const target=liveStages.find(s=>mapStageName(s.name,Boolean(s.isWon),Boolean(s.isLost))===stage); if(!target) return; setDeals(v=>v.map(d=>d.id===id?{...d,stage,updatedAt:new Date().toISOString()}:d)); jsonFetch('/api/pipeline',{method:'PUT',body:JSON.stringify({dealId:id,stageId:target.id})}).then(refreshLiveData).catch(console.error); };
+  const setDealPayment = (dealId: string, amount: number, date: string) => {
+    const cleanAmount = Math.max(0, Number(amount) || 0);
+    const cleanDate = date || new Date().toISOString().slice(0,10);
+    const deal = deals.find(d => d.id === dealId);
+    setPaymentOverrides(v => ({ ...v, [dealId]: { amount: cleanAmount, date: cleanDate } }));
+    setPayments(v => {
+      const rest = v.filter(p => p.dealId !== dealId || p.direction !== 'inflow');
+      if (!cleanAmount) return rest;
+      return [...rest, { id:`received_${dealId}`, clientId:deal?.clientId||'', clientName:deal?.clientName||'Клиент', dealId, dealTitle:deal?.title||'Сделка', amount:cleanAmount, type:'prepayment', direction:'inflow', date:iso(cleanDate), method:'Банковский счет (Безнал)', status:'completed' }];
+    });
+    setDeals(v=>v.map(d=>d.id===dealId?{...d,paymentDate:cleanDate,productionStartDate:['production','ready','shipped'].includes(d.stage)?cleanDate:d.productionStartDate,updatedAt:new Date().toISOString()}:d));
+    jsonFetch(`/api/deals/${encodeURIComponent(dealId)}`,{method:'PUT',body:JSON.stringify({receivedAmount:Math.round(cleanAmount*100),paymentDate:cleanDate})}).then(refreshLiveData).catch(console.error);
+  };
 
   const addTask = (task: Omit<Task,'id'|'createdAt'|'completed'>) => { const item:Task={...task,id:`pending_${Date.now()}`,createdAt:new Date().toISOString(),completed:false}; setTasks(v=>[item,...v]); if(task.clientId) jsonFetch('/api/tasks',{method:'POST',body:JSON.stringify({description:task.title,contactId:task.clientId,dealId:task.dealId||null,priority:backendPriority(task.priority),scheduledAt:task.deadline})}).then(refreshLiveData).catch(console.error); return item; };
   const toggleTask = (id:string) => setTasks(v=>v.map(t=>t.id===id?{...t,completed:!t.completed}:t));
@@ -318,7 +409,7 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteDocument=(id:string)=>setDocuments(v=>v.filter(d=>d.id!==id));
   const bulkDeleteDocuments=(ids:string[])=>setDocuments(v=>v.filter(d=>!ids.includes(d.id)));
   const bulkUpdateDocumentsStatus=(ids:string[],status:DocumentStatus)=>setDocuments(v=>v.map(d=>ids.includes(d.id)?{...d,status}:d));
-  const addPayment=(payment:Omit<PaymentRecord,'id'|'date'>)=>{const item={...payment,id:`pay_${Date.now()}`,date:new Date().toISOString()};setPayments(v=>[item,...v]);const total=payments.filter(p=>p.dealId===payment.dealId&&p.direction==='inflow'&&p.status==='completed').reduce((s,p)=>s+p.amount,0)+(payment.direction==='inflow'&&payment.status==='completed'?payment.amount:0);jsonFetch(`/api/deals/${encodeURIComponent(payment.dealId)}`,{method:'PUT',body:JSON.stringify({receivedAmount:Math.round(total*100)})}).then(refreshLiveData).catch(console.error);return item;};
+  const addPayment=(payment:Omit<PaymentRecord,'id'|'date'>)=>{const item={...payment,id:`pay_${Date.now()}`,date:new Date().toISOString()};setPayments(v=>[item,...v]);if(payment.direction==='inflow'&&payment.status==='completed'){const total=payments.filter(p=>p.dealId===payment.dealId&&p.direction==='inflow'&&p.status==='completed').reduce((s,p)=>s+p.amount,0)+payment.amount;setDealPayment(payment.dealId,total,new Date().toISOString().slice(0,10));}return item;};
 
   const updateSchedulerSettings=(updates:Partial<RecurringSchedulerSettings>)=>setSchedulerSettings(v=>({...v,...updates}));
   const addRecurringSchedule=(schedule:Omit<RecurringInvoiceSchedule,'id'|'createdAt'|'totalExecutedCount'|'totalExecutedAmount'>)=>{const item={...schedule,id:`rec_${Date.now()}`,createdAt:new Date().toISOString(),totalExecutedCount:0,totalExecutedAmount:0};setRecurringSchedules(v=>[item,...v]);return item;};
@@ -334,9 +425,9 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const markAllNotificationsRead=()=>setNotifications(v=>v.map(n=>({...n,read:true})));
   const openCreateTaskWithPreset=(preset:Partial<Task>)=>{setInitialTaskData(preset);setIsCreateTaskOpen(true);};
   const openCreateRecurringForClient=(client:Client)=>{setRecurringPresetClient(client);setIsCreateRecurringOpen(true);};
-  const resetToDefaults=()=>{setProductionOrders([]);setDocuments([]);setChatMessages([]);setNotifications([]);setQuickReplyTemplates([]);setRecurringSchedules([]);setRecurringLogs([]);setInvoiceReminderLogs([]);refreshLiveData().catch(console.error);};
+  const resetToDefaults=()=>{setProductionOrders([]);setDocuments([]);setChatMessages([]);setNotifications([]);setQuickReplyTemplates([]);setRecurringSchedules([]);setRecurringLogs([]);setInvoiceReminderLogs([]);setPaymentOverrides({});setAssignmentOverrides({});refreshLiveData().catch(console.error);};
 
-  const value:CrmContextType={currentTab,setCurrentTab,selectedClientId,setSelectedClientId,selectedDealId,setSelectedDealId,openClientCockpit,theme,setTheme,toggleTheme,currentManager,setCurrentManager,managers,clients,deals,tasks,chatMessages,productionOrders,documents,payments,catalog,contractors,notifications,quickReplyTemplates,addClient,updateClient,deleteClient,bulkDeleteClients,bulkUpdateClientsStatus,bulkReassignClients,addDeal,updateDealStage,updateDeal,addTask,toggleTask,deleteTask,bulkDeleteTasks,bulkUpdateTasksStatus,bulkReassignTasks,sendMessage,updateProductionStatus,addProductionOrder,addDocument,updateDocumentStatus,addDocumentHistoryEvent,deleteDocument,bulkDeleteDocuments,bulkUpdateDocumentsStatus,addPayment,companySettings,updateCompanySettings,addQuickReplyTemplate,deleteQuickReplyTemplate,updateQuickReplyTemplate,markNotificationRead,markAllNotificationsRead,recurringSchedules,recurringLogs,schedulerSettings,updateSchedulerSettings,addRecurringSchedule,updateRecurringSchedule,deleteRecurringSchedule,toggleRecurringScheduleStatus,triggerRecurringScheduleNow,runAutomatedSchedulerCheck,contractReminderSettings,updateContractReminderSettings,invoiceReminderLogs,runInvoiceReminderTriggers,sendSingleInvoiceReminderTrigger,isCommandPaletteOpen,setIsCommandPaletteOpen,isNotificationsOpen,setIsNotificationsOpen,isCreateClientOpen,setIsCreateClientOpen,isCreateDealOpen,setIsCreateDealOpen,isCreateTaskOpen,setIsCreateTaskOpen,initialTaskData,openCreateTaskWithPreset,isCreateInvoiceOpen,setIsCreateInvoiceOpen,isCreateRecurringOpen,setIsCreateRecurringOpen,recurringPresetClient,openCreateRecurringForClient,resetToDefaults};
+  const value:CrmContextType={currentTab,setCurrentTab,selectedClientId,setSelectedClientId,selectedDealId,setSelectedDealId,openClientCockpit,theme,setTheme,toggleTheme,currentManager,setCurrentManager,managers,clients,deals,tasks,chatMessages,productionOrders,documents,payments,catalog,contractors,notifications,quickReplyTemplates,addClient,updateClient,deleteClient,bulkDeleteClients,bulkUpdateClientsStatus,bulkReassignClients,addDeal,updateDealStage,updateDeal,setDealPayment,addTask,toggleTask,deleteTask,bulkDeleteTasks,bulkUpdateTasksStatus,bulkReassignTasks,sendMessage,updateProductionStatus,addProductionOrder,addDocument,updateDocumentStatus,addDocumentHistoryEvent,deleteDocument,bulkDeleteDocuments,bulkUpdateDocumentsStatus,addPayment,companySettings,updateCompanySettings,addQuickReplyTemplate,deleteQuickReplyTemplate,updateQuickReplyTemplate,markNotificationRead,markAllNotificationsRead,recurringSchedules,recurringLogs,schedulerSettings,updateSchedulerSettings,addRecurringSchedule,updateRecurringSchedule,deleteRecurringSchedule,toggleRecurringScheduleStatus,triggerRecurringScheduleNow,runAutomatedSchedulerCheck,contractReminderSettings,updateContractReminderSettings,invoiceReminderLogs,runInvoiceReminderTriggers,sendSingleInvoiceReminderTrigger,isCommandPaletteOpen,setIsCommandPaletteOpen,isNotificationsOpen,setIsNotificationsOpen,isCreateClientOpen,setIsCreateClientOpen,isCreateDealOpen,setIsCreateDealOpen,isCreateTaskOpen,setIsCreateTaskOpen,initialTaskData,openCreateTaskWithPreset,isCreateInvoiceOpen,setIsCreateInvoiceOpen,isCreateRecurringOpen,setIsCreateRecurringOpen,recurringPresetClient,openCreateRecurringForClient,resetToDefaults};
   return <CrmContext.Provider value={value}>{children}</CrmContext.Provider>;
 };
 
