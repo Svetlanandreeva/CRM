@@ -1,4 +1,4 @@
-import type { DealStageInfo, ProposalTemplateMeta } from '../types/crm';
+import type { ContractReminderSettings, DealStageInfo, Manager, ProposalTemplateMeta } from '../types/crm';
 
 // Static UI configuration only. No demo clients, deals, tasks, payments or messages live here.
 export const DEAL_STAGES: DealStageInfo[] = [
@@ -14,6 +14,24 @@ export const DEAL_STAGES: DealStageInfo[] = [
   { id: 'closed_won', title: 'Закрыто', color: '#22C55E', badgeBg: 'bg-green-950/60 text-green-300' },
   { id: 'closed_lost', title: 'Отказ / Срыв', color: '#EF4444', badgeBg: 'bg-red-950/60 text-red-300' },
 ];
+
+export const MANAGERS: Manager[] = [
+  { id: 'owner', name: 'Светлана', role: 'Владелец', avatar: '', email: '', dealsWon: 0, revenue: 0 },
+  { id: 'manager', name: 'Менеджер', role: 'Менеджер проектов', avatar: '', email: '', dealsWon: 0, revenue: 0 },
+];
+
+export const DEFAULT_CONTRACT_REMINDER_SETTINGS: ContractReminderSettings = {
+  enabled: false,
+  remindDaysBeforeDue: 3,
+  sendOnDueDate: false,
+  enableOverdueReminders: false,
+  overdueGraceDays: 1,
+  overdueRepeatIntervalDays: 3,
+  maxOverdueReminders: 3,
+  channels: ['email'],
+  autoCreateUrgentTask: false,
+  penaltyPercentPerDay: 0,
+};
 
 export const PROPOSAL_TEMPLATES: ProposalTemplateMeta[] = [
   {
