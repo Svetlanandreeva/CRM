@@ -1,0 +1,42 @@
+name: Show all CRM deals
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-show-all-deals.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Remove deals list display cap
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/components/deals/LiveDealsView.tsx')
+          s=p.read_text()
+          old=s
+          s=s.replace('shown.slice(0, 8).map((d, index) => {', 'shown.map((d, index) => {')
+          s=s.replace('Показано {Math.min(8, shown.length)} из {shown.length}', 'Показано {shown.length} из {shown.length}')
+          s=s.replace('className="min-h-[694px] overflow-hidden p-[20px]"', 'className="min-h-[694px] overflow-visible p-[20px]"')
+          if s==old:
+            print('No patch needed')
+          else:
+            p.write_text(s)
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'Satori CRM Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add src/components/deals/LiveDealsView.tsx
+          git commit -m 'Show all deals in list'
+          git push
